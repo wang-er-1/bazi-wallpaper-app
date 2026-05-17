@@ -35,7 +35,34 @@ type AnalyzeResult = {
 };
 
 const elements: ElementName[] = ["\u6728", "\u706b", "\u571f", "\u91d1", "\u6c34"];
-const heroStyles = ["nature", "abstract", "minimal"];
+const heroSamples = [
+  {
+    cls: "nature",
+    title: "\u4eca\u65e5\u63a8\u8350",
+    imageUrl: "https://webstatic.aiproxy.vip/output/20260517/128382/8a9f44cd-1f41-48a1-85e5-9cf457aa94f0/983b7c26-26b1-49a4-b340-03771c5e94c2.png",
+  },
+  {
+    cls: "ink",
+    title: "\u5c71\u6c34\u7559\u767d",
+    imageUrl: "https://webstatic.aiproxy.vip/output/20260517/128382/3ff4f7d7-8e93-4207-b315-ce79b62e1478/0e178bf1-dee1-423c-bfab-5d878be63f02.png",
+  },
+  {
+    cls: "cute",
+    title: "\u6cbb\u6108\u690d\u7269",
+    imageUrl: "https://webstatic.aiproxy.vip/output/20260517/128382/33e9be24-99f3-41c4-b03d-c56bac6397ee/bb7b10c9-95b1-40be-b8b2-2285136182e0.png",
+  },
+];
+
+const birthTimeRanges = Array.from({ length: 24 }, (_, hour) => {
+  const nextHour = (hour + 1) % 24;
+  const value = `${String(hour).padStart(2, "0")}:30`;
+  const label = `${hour}-${nextHour}\u70b9`;
+  return { value, label };
+});
+
+function ModelBadge() {
+  return <em className="model-badge"><span className="gpt-icon" aria-hidden="true">GPT</span>gpt-image-2</em>;
+}
 
 const copy = {
   todayWallpaper: "\u4eca\u65e5\u58c1\u7eb8",
@@ -196,7 +223,7 @@ export default function Home() {
       const data = (await response.json()) as { imageUrl: string; message?: string; mode?: string };
       setGeneratedImageUrl(data.imageUrl);
       setGenerationNote(data.message || (data.mode === "real" ? copy.generated : ""));
-      setQuota((current) => current - 1);
+      if (data.mode === "real") setQuota((current) => current - 1);
     } catch (error) {
       window.alert(error instanceof Error ? error.message : copy.imageFailed);
     } finally {
@@ -212,21 +239,19 @@ export default function Home() {
             <p className="eyebrow">{copy.todayWallpaper}</p>
             <h1>{copy.homeTitle}</h1>
           </div>
-          <button className="quota-pill" onClick={() => go("pay")}>
-            <span>{quota}</span> {copy.quotaUnit}
-          </button>
         </header>
 
         <section className="hero-wallpapers" aria-label={copy.todayWallpaper}>
-          {heroStyles.map((style, index) => (
-            <article className={`hero-wallpaper ${style}`} key={style}>
+          {heroSamples.map((item, index) => (
+            <article className={`hero-wallpaper ${item.cls}`} key={item.title}>
+              <img src={item.imageUrl} alt={item.title} />
               {index === 0 ? <span>{copy.heroLabel}</span> : null}
             </article>
           ))}
         </section>
 
         <section className="hero-copy">
-          <em className="model-badge">gpt-image-2</em>
+          <ModelBadge />
           <p>{copy.heroCopy}</p>
           <button className="primary wide" onClick={() => go("birth")}>{copy.viewStyle}</button>
         </section>
@@ -242,7 +267,7 @@ export default function Home() {
         <section className="form-card compact-form">
           <label>{copy.calendar}<select value={form.calendarType} onChange={(event) => setForm((current) => ({ ...current, calendarType: event.target.value }))}><option>{copy.solar}</option><option>{copy.lunar}</option></select></label>
           <label>{copy.birthDate}<input type="date" value={form.birthDate} onChange={(event) => setForm((current) => ({ ...current, birthDate: event.target.value }))} /></label>
-          <label>{copy.birthTime}<input type="time" value={form.birthTime} onChange={(event) => setForm((current) => ({ ...current, birthTime: event.target.value }))} /></label>
+          <label>{copy.birthTime}<select value={form.birthTime} onChange={(event) => setForm((current) => ({ ...current, birthTime: event.target.value }))}>{birthTimeRanges.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}</select></label>
           <label>{copy.gender}<select value={form.gender} onChange={(event) => setForm((current) => ({ ...current, gender: event.target.value }))}><option>{copy.female}</option><option>{copy.male}</option><option>{copy.emptyGender}</option></select></label>
           <button className="primary wide" onClick={startAnalyze}>{copy.analyzeCta}</button>
         </section>
@@ -261,7 +286,7 @@ export default function Home() {
           <section className="featured-recommend">
             <article className={`feature-art ${primaryPreview.cls}`}>{primaryPreview.imageUrl ? <img src={primaryPreview.imageUrl} alt={primaryPreview.title} /> : null}</article>
             <div className="feature-copy">
-              <em className="model-badge">gpt-image-2</em>
+              <ModelBadge />
               <h2>{primaryPreview.title}</h2>
               <p>{analysis.themeCopy}</p>
               <button className="primary wide" onClick={() => selectPreview(primaryPreview)}>{copy.useStyle}</button>
@@ -278,7 +303,7 @@ export default function Home() {
             {thinkingOpen ? <p className="thinking-text">{analysis.reasoning}</p> : null}
           </section> : null}
 
-          {backupPreviews.length ? <section className="alternate-section"><div className="section-title slim"><h2>{copy.alternateTitle}</h2><span>{copy.swipeHint}</span></div><div className="alternate-list">{backupPreviews.map((item) => <article className={`alternate-card ${item.cls}`} key={item.title}><div className="alternate-art">{item.imageUrl ? <img src={item.imageUrl} alt={item.title} /> : null}</div><h3>{item.title}</h3><p>{item.visual}</p><button onClick={() => selectPreview(item)}>{copy.choose}</button></article>)}</div></section> : null}
+          {backupPreviews.length ? <section className="alternate-section"><div className="section-title slim"><h2>{copy.alternateTitle}</h2><span>{copy.swipeHint}</span></div><div className="alternate-list">{backupPreviews.map((item) => <article className={`alternate-card ${item.cls}`} key={item.title} role="button" tabIndex={0} onClick={() => selectPreview(item)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") selectPreview(item); }}><div className="alternate-art">{item.imageUrl ? <img src={item.imageUrl} alt={item.title} /> : null}</div><h3>{item.title}</h3><p>{item.visual}</p><span className="choose-pill">{copy.choose}</span></article>)}</div></section> : null}
         </> : null}
       </section>
 

@@ -66,6 +66,8 @@ button {
 }
 
 .hero-topbar {
+  position: relative;
+  display: block;
   padding: 10px 2px 18px;
 }
 
@@ -102,7 +104,10 @@ h1 {
 }
 
 .quota-pill {
-  min-width: 78px;
+  position: absolute;
+  top: 12px;
+  right: 2px;
+  min-width: 70px;
   height: 42px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.72);
@@ -136,13 +141,30 @@ h1 {
 .hero-wallpaper:first-child {
   grid-row: 1 / span 2;
 }
+.hero-wallpaper img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 2;
+}
+
+.hero-wallpaper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.34));
+  pointer-events: none;
+}
 
 .hero-wallpaper span,
 .wallpaper span {
   position: absolute;
   left: 18px;
   bottom: 18px;
-  z-index: 2;
+  z-index: 4;
   color: white;
   font-size: 18px;
   font-weight: 900;
@@ -169,12 +191,25 @@ h1 {
   width: max-content;
   min-height: 22px;
   border-radius: 999px;
-  padding: 3px 8px;
+  gap: 5px;
+  padding: 3px 8px 3px 4px;
   background: #111;
   color: #fff;
   font-size: 11px;
   font-style: normal;
   font-weight: 900;
+}
+
+.gpt-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #fff;
+  color: #111;
+  font-size: 7px;
+  font-weight: 950;
 }
 
 .primary {
@@ -405,14 +440,20 @@ select {
   grid-auto-flow: column;
   gap: 12px;
   overflow-x: auto;
-  padding: 2px 2px 12px;
+  padding: 2px 2px 120px;
   scroll-snap-type: x mandatory;
 }
 
 .alternate-card {
+  position: relative;
   scroll-snap-align: start;
   display: grid;
   gap: 8px;
+  cursor: pointer;
+}
+
+.alternate-card::after {
+  content: none !important;
 }
 
 .alternate-art {
@@ -433,10 +474,13 @@ select {
 }
 
 .alternate-card button,
+.choose-pill,
 .result-actions button,
 .pay-grid button {
   min-height: 40px;
   border-radius: 999px;
+  position: relative;
+  z-index: 5;
   background: white;
   color: var(--ink);
   font-weight: 900;
@@ -562,7 +606,7 @@ select {
   left: 50%;
   bottom: 14px;
   transform: translateX(-50%);
-  width: min(420px, calc(100% - 30px));
+  width: min(360px, calc(100vw - 56px));
   height: 62px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -572,6 +616,7 @@ select {
   backdrop-filter: blur(18px);
   border: 1px solid rgba(255, 255, 255, 0.8);
   border-radius: 999px;
+  z-index: 20;
   box-shadow: 0 12px 34px rgba(59, 110, 106, 0.14);
 }
 
@@ -664,4 +709,14 @@ select {
   .feature-art {
     min-height: 310px;
   }
+}
+.alternate-card::before,
+.alternate-card::after {
+  content: none !important;
+  display: none !important;
+}
+
+.alternate-card:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 4px;
 }

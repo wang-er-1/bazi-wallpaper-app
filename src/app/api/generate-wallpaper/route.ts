@@ -1,9 +1,10 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 type GenerateRequest = {
   title?: string;
   prompt?: string;
   visual?: string;
+  imageUrl?: string;
 };
 
 type ImageApiResponse = {
@@ -11,6 +12,8 @@ type ImageApiResponse = {
   url?: string;
   b64_json?: string;
 };
+
+const defaultTitle = "\u4e94\u884c\u58c1\u7eb8";
 
 function buildPrompt(input: GenerateRequest) {
   return [
@@ -23,14 +26,29 @@ function buildPrompt(input: GenerateRequest) {
 }
 
 function normalizeSize(size: string) {
-  const normalized = size.replace(/[×＊*]/g, "x").replace(/\s+/g, "").toLowerCase();
+  const normalized = size.replace(/[\u00d7\uff0a*]/g, "x").replace(/\s+/g, "").toLowerCase();
   return /^\d+x\d+$/.test(normalized) ? normalized : "1024x1792";
 }
 
 function mockImage(title: string) {
-  const safeTitle = title || "五行壁纸";
+  const safeTitle = title || defaultTitle;
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1792" viewBox="0 0 1024 1792"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#17384c"/><stop offset="0.58" stop-color="#238ea6"/><stop offset="1" stop-color="#e9f6f4"/></linearGradient></defs><rect width="1024" height="1792" fill="url(#g)"/><circle cx="760" cy="260" r="110" fill="white" fill-opacity="0.72"/><path d="M0 1130 C230 1010 360 1210 580 1080 C760 970 890 1020 1024 930 L1024 1792 L0 1792 Z" fill="#0f4d64" fill-opacity="0.72"/><text x="72" y="1620" fill="white" font-size="72" font-family="Arial, sans-serif">${safeTitle}</text></svg>`;
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+function fallbackImage(input: GenerateRequest) {
+  return input.imageUrl || mockImage(input.title || defaultTitle);
+}
+
+function fallbackResponse(input: GenerateRequest, prompt: string, message: string, detail?: string, meta?: { endpoint?: string; model?: string; size?: string }) {
+  return NextResponse.json({
+    mode: "fallback",
+    imageUrl: fallbackImage(input),
+    prompt,
+    message,
+    detail,
+    ...meta,
+  });
 }
 
 export async function POST(request: Request) {
@@ -41,12 +59,12 @@ export async function POST(request: Request) {
   const size = normalizeSize(process.env.IMAGE_SIZE || "1024x1792");
   const prompt = buildPrompt(body);
 
-  if (!baseUrl || !apiKey || apiKey.includes("填你的")) {
+  if (!baseUrl || !apiKey || apiKey.includes("\u586b\u4f60\u7684")) {
     return NextResponse.json({
       mode: "mock",
-      imageUrl: mockImage(body.title || "五行壁纸"),
+      imageUrl: fallbackImage(body),
       prompt,
-      message: "未配置 IMAGE_API_KEY，当前返回模拟壁纸。",
+      message: "\u672a\u914d\u7f6e IMAGE_API_KEY\uff0c\u5f53\u524d\u8fd4\u56de\u9884\u89c8\u56fe\u3002",
     });
   }
 
@@ -67,20 +85,26 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     clearTimeout(timeout);
-    return NextResponse.json({
-      error: "图片接口连接失败",
-      detail: error instanceof Error && error.name === "AbortError" ? "图片接口超过 180 秒未返回，请稍后重试。" : error instanceof Error ? error.message : String(error),
-      endpoint,
-      model,
-      size,
-    }, { status: 502 });
+    return fallbackResponse(
+      body,
+      prompt,
+      "\u56fe\u7247\u670d\u52a1\u6682\u65f6\u4e0d\u53ef\u7528\uff0c\u5df2\u5148\u8fd4\u56de\u5f53\u524d\u98ce\u683c\u9884\u89c8\u56fe\u3002",
+      error instanceof Error && error.name === "AbortError" ? "image request timed out" : error instanceof Error ? error.message : String(error),
+      { endpoint, model, size },
+    );
   }
 
   clearTimeout(timeout);
 
   if (!response.ok) {
     const errorText = await response.text();
-    return NextResponse.json({ error: "图片生成失败", detail: errorText, endpoint, model, size }, { status: 502 });
+    return fallbackResponse(
+      body,
+      prompt,
+      "\u56fe\u7247\u751f\u6210\u670d\u52a1\u8fd4\u56de\u9519\u8bef\uff0c\u5df2\u5148\u8fd4\u56de\u5f53\u524d\u98ce\u683c\u9884\u89c8\u56fe\u3002",
+      errorText,
+      { endpoint, model, size },
+    );
   }
 
   const data = (await response.json()) as ImageApiResponse;
@@ -88,10 +112,14 @@ export async function POST(request: Request) {
   const imageUrl = first.url || (first.b64_json ? `data:image/png;base64,${first.b64_json}` : "");
 
   if (!imageUrl) {
-    return NextResponse.json({ error: "图片接口没有返回图片", detail: JSON.stringify(data), endpoint, model, size }, { status: 502 });
+    return fallbackResponse(
+      body,
+      prompt,
+      "\u56fe\u7247\u63a5\u53e3\u6ca1\u6709\u8fd4\u56de\u56fe\u7247\uff0c\u5df2\u5148\u8fd4\u56de\u5f53\u524d\u98ce\u683c\u9884\u89c8\u56fe\u3002",
+      JSON.stringify(data),
+      { endpoint, model, size },
+    );
   }
 
   return NextResponse.json({ mode: "real", imageUrl, prompt, size });
 }
-
-

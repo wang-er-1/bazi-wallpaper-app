@@ -1,4 +1,4 @@
-/* eslint-disable @next/next/no-img-element */
+﻿/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState } from "react";
@@ -38,18 +38,18 @@ const elements: ElementName[] = ["\u6728", "\u706b", "\u571f", "\u91d1", "\u6c34
 const heroSamples = [
   {
     cls: "nature",
-    title: "\u4eca\u65e5\u63a8\u8350",
-    imageUrl: "https://webstatic.aiproxy.vip/output/20260517/128382/8a9f44cd-1f41-48a1-85e5-9cf457aa94f0/983b7c26-26b1-49a4-b340-03771c5e94c2.png",
+    title: "火烧云",
+    imageUrl: "/previews/fiery-clouds.svg",
   },
   {
     cls: "ink",
-    title: "\u5c71\u6c34\u7559\u767d",
-    imageUrl: "https://webstatic.aiproxy.vip/output/20260517/128382/3ff4f7d7-8e93-4207-b315-ce79b62e1478/0e178bf1-dee1-423c-bfab-5d878be63f02.png",
+    title: "金色麦田",
+    imageUrl: "/previews/golden-wheat.svg",
   },
   {
     cls: "cute",
-    title: "\u6cbb\u6108\u690d\u7269",
-    imageUrl: "https://webstatic.aiproxy.vip/output/20260517/128382/33e9be24-99f3-41c4-b03d-c56bac6397ee/bb7b10c9-95b1-40be-b8b2-2285136182e0.png",
+    title: "暖沙留白",
+    imageUrl: "/previews/sand-waves.svg",
   },
 ];
 
@@ -61,19 +61,19 @@ const birthTimeRanges = Array.from({ length: 24 }, (_, hour) => {
 });
 
 function ModelBadge() {
-  return <em className="model-badge"><span className="gpt-icon" aria-hidden="true">GPT</span>gpt-image-2</em>;
+  return <em className="model-badge"><img className="openai-icon" src="/openai-symbol.svg" alt="" aria-hidden="true" />gpt-image-2</em>;
 }
 
 const copy = {
-  todayWallpaper: "\u4eca\u65e5\u58c1\u7eb8",
-  homeTitle: "\u5148\u770b\u89c1\u4eca\u5929\u7684\u597d\u8fd0",
+  todayWallpaper: "\u4eca\u65e5\u4e94\u884c\u58c1\u7eb8",
+  homeTitle: "先分析，再生成你的今日壁纸",
   quotaUnit: "\u5f20",
   heroLabel: "\u4eca\u65e5\u63a8\u8350",
-  heroCopy: "\u6839\u636e\u751f\u65e5\uff0c\u751f\u6210\u4eca\u5929\u9002\u5408\u4f60\u7684\u9ad8\u6e05\u58c1\u7eb8\u3002",
-  viewStyle: "\u67e5\u770b\u6211\u7684\u98ce\u683c",
+  heroCopy: "输入出生日期和时间，系统先排八字与五行，再结合当前月份，推荐适合你的壁纸方向。",
+  viewStyle: "开始分析我的方向",
   generate: "\u751f\u6210",
   birthTitle: "\u586b\u5199\u751f\u65e5",
-  birthCopy: "\u53ea\u7528\u5fc5\u8981\u4fe1\u606f\uff0c\u5148\u5224\u65ad\u9002\u5408\u4f60\u7684\u89c6\u89c9\u65b9\u5411\u3002",
+  birthCopy: "这一步不会直接生图，先根据你的出生信息判断适合的颜色、意象和大风格。",
   calendar: "\u5386\u6cd5",
   solar: "\u9633\u5386",
   lunar: "\u519c\u5386",
@@ -86,9 +86,9 @@ const copy = {
   analyzeCta: "\u67e5\u770b\u6211\u7684\u58c1\u7eb8\u98ce\u683c",
   matching: "\u6b63\u5728\u5339\u914d",
   matchingCopy: "\u7ed3\u5408\u751f\u65e5\u548c\u4eca\u5929\u7684\u65f6\u95f4\u6c14\u606f\uff0c\u6311\u51fa\u66f4\u9002\u5408\u4f60\u7684\u753b\u9762\u3002",
-  recommendKicker: "\u63a8\u8350\u98ce\u683c",
-  recommendTitle: "\u9002\u5408\u4f60\u7684\u4eca\u5929",
-  useStyle: "\u7528\u8fd9\u4e2a\u98ce\u683c\u751f\u6210",
+  recommendKicker: "分析完成",
+  recommendTitle: "选择一个壁纸方向",
+  useStyle: "选择这个方向",
   collapseReason: "\u6536\u8d77\u63a8\u8350\u4f9d\u636e",
   expandReason: "\u4e3a\u4ec0\u4e48\u63a8\u8350\u8fd9\u4e2a",
   year: "\u5e74\u67f1",
@@ -97,17 +97,17 @@ const copy = {
   time: "\u65f6\u67f1",
   collapseThinking: "\u6536\u8d77\u5206\u6790\u8fc7\u7a0b",
   expandThinking: "\u67e5\u770b\u5206\u6790\u8fc7\u7a0b",
-  alternateTitle: "\u6362\u4e2a\u65b9\u5411",
-  swipeHint: "\u6a2a\u6ed1\u9009\u62e9",
-  choose: "\u9009\u62e9",
+  alternateTitle: "其他适合你的方向",
+  swipeHint: "每个方向会生成不同提示词",
+  choose: "选这个方向",
   resultKicker: "\u9ad8\u6e05\u58c1\u7eb8",
-  resultCopy: "\u751f\u6210\u4e00\u5f20 9:16 \u7ad6\u5c4f\u56fe\u3002",
+  resultCopy: "确认方向后，gpt-image-2 会按专属提示词生成一张 9:16 高清壁纸。",
   wallpaperSuffix: "\u58c1\u7eb8",
   downloadSuffix: "\u597d\u8fd0\u58c1\u7eb8.png",
   generatingNote: "\u6b63\u5728\u751f\u6210\u9ad8\u6e05\u58c1\u7eb8\uff0c\u901a\u5e38\u9700\u8981 30-120 \u79d2\u3002",
   generated: "\u9ad8\u6e05\u58c1\u7eb8\u5df2\u751f\u6210\u3002",
   generating: "\u751f\u6210\u4e2d...",
-  generateWallpaper: "\u751f\u6210\u9ad8\u6e05\u58c1\u7eb8",
+  generateWallpaper: "用专属提示词生成",
   quotaEmpty: "\u989d\u5ea6\u5df2\u7528\u5b8c",
   download: "\u4e0b\u8f7d",
   changeStyle: "\u6362\u98ce\u683c",
@@ -253,6 +253,7 @@ export default function Home() {
         <section className="hero-copy">
           <ModelBadge />
           <p>{copy.heroCopy}</p>
+          <div className="flow-chips" aria-label="生成流程"><span>排八字</span><span>看五行</span><span>选方向</span><span>生成图</span></div>
           <button className="primary wide" onClick={() => go("birth")}>{copy.viewStyle}</button>
         </section>
       </section>
@@ -287,8 +288,10 @@ export default function Home() {
             <article className={`feature-art ${primaryPreview.cls}`}>{primaryPreview.imageUrl ? <img src={primaryPreview.imageUrl} alt={primaryPreview.title} /> : null}</article>
             <div className="feature-copy">
               <ModelBadge />
+              <span className="direction-label">大风格方向</span>
               <h2>{primaryPreview.title}</h2>
               <p>{analysis.themeCopy}</p>
+              <div className="visual-brief"><b>会生成什么</b><span>{primaryPreview.visual}</span></div>
               <button className="primary wide" onClick={() => selectPreview(primaryPreview)}>{copy.useStyle}</button>
             </div>
           </section>
@@ -303,7 +306,7 @@ export default function Home() {
             {thinkingOpen ? <p className="thinking-text">{analysis.reasoning}</p> : null}
           </section> : null}
 
-          {backupPreviews.length ? <section className="alternate-section"><div className="section-title slim"><h2>{copy.alternateTitle}</h2><span>{copy.swipeHint}</span></div><div className="alternate-list">{backupPreviews.map((item) => <article className={`alternate-card ${item.cls}`} key={item.title} role="button" tabIndex={0} onClick={() => selectPreview(item)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") selectPreview(item); }}><div className="alternate-art">{item.imageUrl ? <img src={item.imageUrl} alt={item.title} /> : null}</div><h3>{item.title}</h3><p>{item.visual}</p><span className="choose-pill">{copy.choose}</span></article>)}</div></section> : null}
+          {backupPreviews.length ? <section className="alternate-section"><div className="section-title slim"><h2>{copy.alternateTitle}</h2><span>{copy.swipeHint}</span></div><div className="alternate-list">{backupPreviews.map((item) => <article className={`alternate-card ${item.cls}`} key={item.title} role="button" tabIndex={0} onClick={() => selectPreview(item)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") selectPreview(item); }}><div className="alternate-art">{item.imageUrl ? <img src={item.imageUrl} alt={item.title} /> : null}</div><span className="direction-label small">大风格</span><h3>{item.title}</h3><p>{item.visual}</p><button type="button" className="choose-pill" onClick={(event) => { event.stopPropagation(); selectPreview(item); }}>{copy.choose}</button></article>)}</div></section> : null}
         </> : null}
       </section>
 
@@ -317,9 +320,10 @@ export default function Home() {
           {generatedImageUrl ? (
             <img className="generated-wallpaper" src={generatedImageUrl} alt={`${selectedTitle}${copy.wallpaperSuffix}`} />
           ) : (
-            <article className={`wallpaper single ${selectedPreview?.cls ?? "nature"}`}><span>{selectedTitle}</span></article>
+            <article className={`wallpaper single ${selectedPreview?.cls ?? "nature"}`}>{selectedPreview?.imageUrl ? <img src={selectedPreview.imageUrl} alt={selectedTitle} /> : null}<span>{selectedTitle}</span></article>
           )}
         </section>
+        {selectedPreview ? <div className="result-brief"><b>本次方向</b><span>{selectedPreview.visual}</span></div> : null}
         {generationNote ? <p className="generation-note">{generationNote}</p> : null}
         <button className="primary wide" onClick={generateWallpaper} disabled={generating}>{generating ? copy.generating : quota > 0 ? copy.generateWallpaper : copy.quotaEmpty}</button>
         <div className="result-actions">{generatedImageUrl ? <button onClick={downloadWallpaper}>{copy.download}</button> : <button onClick={() => go("recommend")}>{copy.changeStyle}</button>}<button onClick={() => go("pay")}>{copy.buyQuota}</button></div>
@@ -338,3 +342,6 @@ export default function Home() {
     </main>
   );
 }
+
+
+

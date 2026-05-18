@@ -200,16 +200,14 @@ h1 {
   font-weight: 900;
 }
 
-.gpt-icon {
-  display: inline-grid;
-  place-items: center;
+.openai-icon {
   width: 18px;
   height: 18px;
   border-radius: 999px;
   background: #fff;
-  color: #111;
-  font-size: 7px;
-  font-weight: 950;
+  padding: 3px;
+  object-fit: contain;
+  display: block;
 }
 
 .primary {
@@ -719,4 +717,124 @@ select {
 .alternate-card:focus-visible {
   outline: 2px solid var(--teal);
   outline-offset: 4px;
+}
+
+.feature-art::after,
+.wallpaper.single::after,
+.hero-wallpaper::after,
+.alternate-art::after {
+  content: none !important;
+  display: none !important;
+}
+
+.wallpaper img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 2;
+}
+
+.wallpaper span {
+  z-index: 4;
+}
+
+.golden {
+  background: linear-gradient(160deg, #ffe8a7, #e7a33c 56%, #7a3d13);
+}
+
+.fiery {
+  background: radial-gradient(circle at 52% 72%, #ffd94d, #f57b17 45%, #5e1709);
+}
+
+.sand {
+  background: linear-gradient(160deg, #f8dfbd, #efb36f 52%, #c96f3d);
+}
+
+.rock {
+  background: linear-gradient(160deg, #ffe1a0, #d97032 52%, #7f2f1d);
+}
+
+.mist {
+  background: linear-gradient(160deg, #d7f0f0, #a6d5d0 52%, #315a5b);
+}
+
+.flow-chips {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.flow-chips span,
+.direction-label,
+.visual-brief,
+.result-brief {
+  border: 1px solid rgba(23, 141, 143, 0.12);
+  background: rgba(233, 247, 244, 0.86);
+}
+
+.flow-chips span {
+  min-height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--teal);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.direction-label {
+  width: max-content;
+  border-radius: 999px;
+  padding: 5px 10px;
+  color: var(--teal);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.direction-label.small {
+  margin-top: 2px;
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.visual-brief,
+.result-brief {
+  display: grid;
+  gap: 5px;
+  border-radius: 18px;
+  padding: 12px 14px;
+}
+
+.visual-brief b,
+.result-brief b {
+  color: var(--ink);
+  font-size: 13px;
+}
+
+.visual-brief span,
+.result-brief span {
+  color: #5f655f;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.result-brief {
+  margin: -4px 0 12px;
+}
+
+.choose-pill {
+  width: 100%;
+  display: grid;
+  place-items: center;
+  padding: 0 12px;
+}
+
+.alternate-card {
+  border-radius: 24px;
+}
+
+.alternate-card:active {
+  transform: translateY(1px) scale(0.99);
 }

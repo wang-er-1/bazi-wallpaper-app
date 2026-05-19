@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 
-type Screen = "home" | "birth" | "analyzing" | "recommend" | "result" | "pay";
+type Screen = "home" | "birth" | "analyzing" | "recommend" | "result" | "mine";
 type ElementName = "\u6728" | "\u706b" | "\u571f" | "\u91d1" | "\u6c34";
 
 type AnalyzeRequest = {
@@ -22,6 +22,14 @@ type WallpaperPreview = {
   imageUrl?: string;
 };
 
+type GenerationRecord = {
+  id: string;
+  title: string;
+  imageUrl: string;
+  createdAt: string;
+  visual: string;
+};
+
 type AnalyzeResult = {
   bazi: string;
   baziDetail: { year: string; month: string; day: string; time: string };
@@ -36,6 +44,10 @@ type AnalyzeResult = {
 
 const elements: ElementName[] = ["\u6728", "\u706b", "\u571f", "\u91d1", "\u6c34"];
 const generationSteps = ["复核八字与五行", "生成专属提示词", "调用 gpt-image-2", "整理高清壁纸"];
+const initialFreeQuota = 5;
+const recordsStorageKey = "bazi-wallpaper-records";
+const quotaStorageKey = "bazi-wallpaper-quota";
+const qqGroupUrl = "#";
 
 
 const heroSamples = [
@@ -114,10 +126,10 @@ const copy = {
   quotaEmpty: "\u989d\u5ea6\u5df2\u7528\u5b8c",
   download: "\u4e0b\u8f7d",
   changeStyle: "\u6362\u98ce\u683c",
-  buyQuota: "\u8d2d\u4e70\u989d\u5ea6",
+  buyQuota: "查看记录",
   mine: "\u6211\u7684",
-  payTitle: "\u8d2d\u4e70\u989d\u5ea6",
-  payCopy: "\u5148\u7528\u4e24\u4e2a\u7b80\u5355\u6863\u4f4d\u6d4b\u8bd5\u8f6c\u5316\u3002",
+  payTitle: "我的壁纸",
+  payCopy: "第一版先不开放付费，每个设备可免费生成 5 张。",
   analyzeFailed: "\u5206\u6790\u6682\u65f6\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u518d\u8bd5\u3002",
   imageFailed: "\u56fe\u7247\u751f\u6210\u6682\u65f6\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u518d\u8bd5\u3002",
   fail: "\u5206\u6790\u5931\u8d25",
@@ -126,7 +138,8 @@ const copy = {
 
 export default function Home() {
   const [screen, setScreen] = useState<Screen>("home");
-  const [quota, setQuota] = useState(20);
+  const [quota, setQuota] = useState(initialFreeQuota);
+  const [records, setRecords] = useState<GenerationRecord[]>([]);
   const [thinkingOpen, setThinkingOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedPreview, setSelectedPreview] = useState<WallpaperPreview | null>(null);
@@ -145,6 +158,28 @@ export default function Home() {
   const selectedTitle = selectedPreview?.title ?? copy.viewStyle;
   const primaryPreview = analysis?.previews[0] ?? null;
   const backupPreviews = analysis?.previews.slice(1) ?? [];
+
+  useEffect(() => {
+    const savedQuota = window.localStorage.getItem(quotaStorageKey);
+    const savedRecords = window.localStorage.getItem(recordsStorageKey);
+    if (savedQuota !== null) setQuota(Math.max(0, Number(savedQuota) || 0));
+    if (savedRecords) {
+      try {
+        const parsed = JSON.parse(savedRecords) as GenerationRecord[];
+        setRecords(Array.isArray(parsed) ? parsed.slice(0, 20) : []);
+      } catch {
+        setRecords([]);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(quotaStorageKey, String(quota));
+  }, [quota]);
+
+  useEffect(() => {
+    window.localStorage.setItem(recordsStorageKey, JSON.stringify(records.slice(0, 20)));
+  }, [records]);
   useEffect(() => {
     if (!generating) return;
     const timer = window.setInterval(() => {
@@ -209,7 +244,7 @@ export default function Home() {
 
   async function generateWallpaper() {
     if (quota <= 0) {
-      setScreen("pay");
+      setScreen("mine");
       return;
     }
 
@@ -340,22 +375,42 @@ export default function Home() {
         {generating ? <div className="generation-steps" aria-label="生成进度">
           {generationSteps.map((step, index) => <span className={index <= generationStep ? "active" : ""} key={step}><i />{step}</span>)}
         </div> : null}        <button className="primary wide" onClick={generateWallpaper} disabled={generating}>{generating ? copy.generating : quota > 0 ? copy.generateWallpaper : copy.quotaEmpty}</button>
-        <div className="result-actions">{generatedImageUrl ? <button onClick={downloadWallpaper}>{copy.download}</button> : <button onClick={() => go("recommend")}>{copy.changeStyle}</button>}<button onClick={() => go("pay")}>{copy.buyQuota}</button></div>
+        <div className="result-actions">{generatedImageUrl ? <button onClick={downloadWallpaper}>{copy.download}</button> : <button onClick={() => go("recommend")}>{copy.changeStyle}</button>}<button onClick={() => go("mine")}>{copy.buyQuota}</button></div>
       </section>
 
-      <section className={`screen ${screen === "pay" ? "active" : ""}`}>
+      <section className={`screen ${screen === "mine" ? "active" : ""}`}>
         <header className="page-head minimal-head"><p className="eyebrow">{copy.mine}</p><h1>{copy.payTitle}</h1><p>{copy.payCopy}</p></header>
-        <section className="pay-grid"><button><b>1 \u5143</b><span>5 {copy.quotaUnit}</span></button><button><b>10 \u5143</b><span>50 {copy.quotaUnit}</span></button></section>
+        <section className="mine-card">
+          <div><span>剩余免费次数</span><b>{quota}</b></div>
+          <button onClick={() => qqGroupUrl === "#" ? window.alert("先把 QQ 群链接给我，我会接到这里。") : window.open(qqGroupUrl, "_blank", "noopener,noreferrer")}>加入交流群</button>
+        </section>
+        <section className="record-section">
+          <div className="section-title slim"><h2>生成记录</h2><span>{records.length ? "点击图片查看" : "生成后会自动保存在这里"}</span></div>
+          {records.length ? (
+            <div className="record-grid">
+              {records.map((item) => (
+                <button className="record-card" key={item.id} onClick={() => { setGeneratedImageUrl(item.imageUrl); setSelectedPreview((current) => current ? { ...current, title: item.title, visual: item.visual } : current); setScreen("result"); }}>
+                  <img src={item.imageUrl} alt={item.title} />
+                  <span>{item.title}</span>
+                  <small>{item.createdAt}</small>
+                </button>
+              ))}
+            </div>
+          ) : <div className="empty-record">还没有生成记录。先去生成一张属于你的今日壁纸。</div>}
+        </section>
       </section>
 
       <nav className="bottom-nav">
         <button className={screen === "home" ? "active" : ""} onClick={() => go("home")}><span className="nav-icon home-icon" />{copy.todayWallpaper.slice(0, 2)}</button>
         <button className={screen === "birth" || screen === "recommend" || screen === "result" ? "active" : ""} onClick={() => go("birth")}><span className="nav-icon birth-icon" />{copy.generate}</button>
-        <button className={screen === "pay" ? "active" : ""} onClick={() => go("pay")}><span className="nav-icon user-icon" />{copy.mine}</button>
+        <button className={screen === "mine" ? "active" : ""} onClick={() => go("mine")}><span className="nav-icon user-icon" />{copy.mine}</button>
       </nav>
     </main>
   );
 }
+
+
+
 
 
 

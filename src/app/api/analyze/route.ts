@@ -63,6 +63,19 @@ const producingElement: Record<ElementName, ElementName> = { 木: "水", 火: "�
 const producedElement: Record<ElementName, ElementName> = { 木: "火", 火: "土", 土: "金", 金: "水", 水: "木" };
 const controllingElement: Record<ElementName, ElementName> = { 木: "金", 火: "水", 土: "木", 金: "火", 水: "土" };
 
+const elementKey: Record<ElementName, string> = { 木: "wood", 火: "fire", 土: "earth", 金: "metal", 水: "water" };
+const categoryKey: Record<string, string> = {
+  自然风景: "nature",
+  抽象艺术: "abstract",
+  治愈插画: "healing",
+  极简质感: "minimal",
+  东方山水: "oriental",
+  能量光感: "energy",
+};
+
+function coverUrl(element: ElementName, categoryTitle: string) {
+  return `/covers/${elementKey[element]}-${categoryKey[categoryTitle] ?? "nature"}-01.svg`;
+}
 const categories: StyleCategory[] = [
   { title: "自然风景", cls: "mist", imageUrl: "/previews/mist-lake.svg", affinities: ["木", "水", "土", "火"], tone: "真实、有空气感、适合做锁屏", promptStyle: "photorealistic cinematic landscape photography" },
   { title: "抽象艺术", cls: "sand", imageUrl: "/previews/sand-waves.svg", affinities: ["火", "土", "金", "水"], tone: "不直接画物体，但保留情绪和色彩能量", promptStyle: "modern abstract wallpaper, elegant shapes, premium color composition" },
@@ -169,8 +182,12 @@ function hashText(value: string) {
   return Math.abs(hash >>> 0);
 }
 
-function pickScene(category: StyleCategory, useful: ElementName[], seed: number): SceneOption {
-  const primary = useful[(seed + category.title.length) % useful.length];
+function pickPrimaryElement(category: StyleCategory, useful: ElementName[], seed: number): ElementName {
+  const bestFit = useful.find((element) => category.affinities.includes(element));
+  return bestFit ?? useful[(seed + category.title.length) % useful.length];
+}
+
+function pickScene(category: StyleCategory, primary: ElementName, seed: number): SceneOption {
   const scenes = sceneBank[primary][category.title] ?? sceneBank[primary].自然风景;
   return scenes[seed % scenes.length];
 }
@@ -209,15 +226,16 @@ function buildPersonalPreviews(params: {
   }).sort((a, b) => b.score - a.score);
 
   return scored.slice(0, 5).map(({ category }, index) => {
-    const scene = pickScene(category, params.useful, seed + index * 17);
+    const primary = pickPrimaryElement(category, params.useful, seed + index * 17);
+    const scene = pickScene(category, primary, seed + index * 17);
     const prompt = `${scene.prompt}. Style direction: ${category.promptStyle}. Personalized by Chinese Bazi chart ${params.parts.join(" ")}; day master ${params.dayMaster}; recommended elements ${params.usefulText}; avoid overusing ${params.avoidText}. No text, no typography, no logo, no watermark, no UI, no phone frame, no people, full bleed vertical smartphone wallpaper, beautiful premium aesthetic, 1080x1920.`;
     return {
       title: category.title,
       basis: `你的日主为${params.dayMaster}，这次更适合用${params.usefulText}来平衡；「${category.title}」会被细化成：${scene.visual}。`,
       visual: `${category.tone}｜${scene.visual}`,
-      cls: scene.cls || category.cls,
+      cls: category.cls,
       prompt,
-      imageUrl: scene.imageUrl || category.imageUrl,
+      imageUrl: coverUrl(primary, category.title),
     };
   });
 }
@@ -259,3 +277,5 @@ export async function POST(request: Request) {
     }),
   });
 }
+
+

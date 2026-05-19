@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 
 type GenerateRequest = {
   title?: string;
@@ -36,19 +36,25 @@ function mockImage(title: string) {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
-function fallbackImage(input: GenerateRequest) {
-  return input.imageUrl || mockImage(input.title || defaultTitle);
+function mockResponse(input: GenerateRequest, prompt: string) {
+  return NextResponse.json({
+    mode: "mock",
+    imageUrl: input.imageUrl || mockImage(input.title || defaultTitle),
+    prompt,
+    message: "未配置 IMAGE_API_KEY，当前返回本地预览图。",
+  });
 }
 
-function fallbackResponse(input: GenerateRequest, prompt: string, message: string, detail?: string, meta?: { endpoint?: string; model?: string; size?: string }) {
-  return NextResponse.json({
-    mode: "fallback",
-    imageUrl: fallbackImage(input),
-    prompt,
-    message,
-    detail,
-    ...meta,
-  });
+function errorResponse(message: string, detail?: string, meta?: { endpoint?: string; model?: string; size?: string }) {
+  return NextResponse.json(
+    {
+      mode: "error",
+      message,
+      detail,
+      ...meta,
+    },
+    { status: 502 },
+  );
 }
 
 export async function POST(request: Request) {
@@ -60,12 +66,7 @@ export async function POST(request: Request) {
   const prompt = buildPrompt(body);
 
   if (!baseUrl || !apiKey || apiKey.includes("\u586b\u4f60\u7684")) {
-    return NextResponse.json({
-      mode: "mock",
-      imageUrl: fallbackImage(body),
-      prompt,
-      message: "\u672a\u914d\u7f6e IMAGE_API_KEY\uff0c\u5f53\u524d\u8fd4\u56de\u9884\u89c8\u56fe\u3002",
-    });
+    return mockResponse(body, prompt);
   }
 
   const endpoint = `${baseUrl.replace(/\/$/, "")}/images/generations`;
@@ -85,10 +86,8 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     clearTimeout(timeout);
-    return fallbackResponse(
-      body,
-      prompt,
-      "\u56fe\u7247\u670d\u52a1\u6682\u65f6\u4e0d\u53ef\u7528\uff0c\u5df2\u5148\u8fd4\u56de\u5f53\u524d\u98ce\u683c\u9884\u89c8\u56fe\u3002",
+    return errorResponse(
+      error instanceof Error && error.name === "AbortError" ? "图片生成超时，请稍后再试。" : "图片服务暂时不可用，请稍后再试。",
       error instanceof Error && error.name === "AbortError" ? "image request timed out" : error instanceof Error ? error.message : String(error),
       { endpoint, model, size },
     );
@@ -98,10 +97,8 @@ export async function POST(request: Request) {
 
   if (!response.ok) {
     const errorText = await response.text();
-    return fallbackResponse(
-      body,
-      prompt,
-      "\u56fe\u7247\u751f\u6210\u670d\u52a1\u8fd4\u56de\u9519\u8bef\uff0c\u5df2\u5148\u8fd4\u56de\u5f53\u524d\u98ce\u683c\u9884\u89c8\u56fe\u3002",
+    return errorResponse(
+      "图片生成服务返回错误，请稍后再试。",
       errorText,
       { endpoint, model, size },
     );
@@ -112,10 +109,8 @@ export async function POST(request: Request) {
   const imageUrl = first.url || (first.b64_json ? `data:image/png;base64,${first.b64_json}` : "");
 
   if (!imageUrl) {
-    return fallbackResponse(
-      body,
-      prompt,
-      "\u56fe\u7247\u63a5\u53e3\u6ca1\u6709\u8fd4\u56de\u56fe\u7247\uff0c\u5df2\u5148\u8fd4\u56de\u5f53\u524d\u98ce\u683c\u9884\u89c8\u56fe\u3002",
+    return errorResponse(
+      "图片接口没有返回图片，请稍后再试。",
       JSON.stringify(data),
       { endpoint, model, size },
     );
@@ -123,3 +118,4 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ mode: "real", imageUrl, prompt, size });
 }
+

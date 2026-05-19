@@ -1,7 +1,7 @@
 ﻿/* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Screen = "home" | "birth" | "analyzing" | "recommend" | "result" | "pay";
 type ElementName = "\u6728" | "\u706b" | "\u571f" | "\u91d1" | "\u6c34";
@@ -35,6 +35,9 @@ type AnalyzeResult = {
 };
 
 const elements: ElementName[] = ["\u6728", "\u706b", "\u571f", "\u91d1", "\u6c34"];
+const generationSteps = ["复核八字与五行", "生成专属提示词", "调用 gpt-image-2", "整理高清壁纸"];
+
+
 const heroSamples = [
   {
     cls: "nature",
@@ -131,6 +134,7 @@ export default function Home() {
   const [generatedImageUrl, setGeneratedImageUrl] = useState("");
   const [generating, setGenerating] = useState(false);
   const [generationNote, setGenerationNote] = useState("");
+  const [generationStep, setGenerationStep] = useState(0);
   const [form, setForm] = useState<AnalyzeRequest>({
     calendarType: copy.solar,
     birthDate: "1996-08-18",
@@ -141,6 +145,13 @@ export default function Home() {
   const selectedTitle = selectedPreview?.title ?? copy.viewStyle;
   const primaryPreview = analysis?.previews[0] ?? null;
   const backupPreviews = analysis?.previews.slice(1) ?? [];
+  useEffect(() => {
+    if (!generating) return;
+    const timer = window.setInterval(() => {
+      setGenerationStep((current) => Math.min(current + 1, generationSteps.length - 1));
+    }, 1600);
+    return () => window.clearInterval(timer);
+  }, [generating]);
 
   function go(next: Screen) {
     if ((next === "recommend" || next === "result") && !analysis) {
@@ -205,6 +216,7 @@ export default function Home() {
     if (!selectedPreview) return;
 
     setGenerating(true);
+    setGenerationStep(0);
     setGenerationNote(copy.generatingNote);
 
     try {
@@ -285,7 +297,7 @@ export default function Home() {
         </header>
         {analysis && primaryPreview ? <>
           <section className="featured-recommend">
-            <article className={`feature-art ${primaryPreview.cls}`}>{primaryPreview.imageUrl ? <img src={primaryPreview.imageUrl} alt={primaryPreview.title} /> : null}</article>
+            <article className={`feature-art ${primaryPreview.cls}`}>{primaryPreview.imageUrl ? <img src={primaryPreview.imageUrl} alt={primaryPreview.title} /> : null}<span>{primaryPreview.title}</span></article>
             <div className="feature-copy">
               <ModelBadge />
               <span className="direction-label">大风格方向</span>
@@ -306,7 +318,7 @@ export default function Home() {
             {thinkingOpen ? <p className="thinking-text">{analysis.reasoning}</p> : null}
           </section> : null}
 
-          {backupPreviews.length ? <section className="alternate-section"><div className="section-title slim"><h2>{copy.alternateTitle}</h2><span>{copy.swipeHint}</span></div><div className="alternate-list">{backupPreviews.map((item) => <article className={`alternate-card ${item.cls}`} key={item.title} role="button" tabIndex={0} onClick={() => selectPreview(item)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") selectPreview(item); }}><div className="alternate-art">{item.imageUrl ? <img src={item.imageUrl} alt={item.title} /> : null}</div><span className="direction-label small">大风格</span><h3>{item.title}</h3><p>{item.visual}</p><button type="button" className="choose-pill" onClick={(event) => { event.stopPropagation(); selectPreview(item); }}>{copy.choose}</button></article>)}</div></section> : null}
+          {backupPreviews.length ? <section className="alternate-section"><div className="section-title slim"><h2>{copy.alternateTitle}</h2><span>{copy.swipeHint}</span></div><div className="alternate-list">{backupPreviews.map((item) => <article className={`alternate-card ${item.cls}`} key={item.title} role="button" tabIndex={0} onClick={() => selectPreview(item)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") selectPreview(item); }}><div className="alternate-art">{item.imageUrl ? <img src={item.imageUrl} alt={item.title} /> : null}</div><div className="card-copy"><span className="direction-label small">大风格</span><h3>{item.title}</h3><p>{item.visual}</p></div><button type="button" className="choose-pill" onClick={(event) => { event.stopPropagation(); selectPreview(item); }}>{copy.choose}</button></article>)}</div></section> : null}
         </> : null}
       </section>
 
@@ -325,7 +337,9 @@ export default function Home() {
         </section>
         {selectedPreview ? <div className="result-brief"><b>本次方向</b><span>{selectedPreview.visual}</span></div> : null}
         {generationNote ? <p className="generation-note">{generationNote}</p> : null}
-        <button className="primary wide" onClick={generateWallpaper} disabled={generating}>{generating ? copy.generating : quota > 0 ? copy.generateWallpaper : copy.quotaEmpty}</button>
+        {generating ? <div className="generation-steps" aria-label="生成进度">
+          {generationSteps.map((step, index) => <span className={index <= generationStep ? "active" : ""} key={step}><i />{step}</span>)}
+        </div> : null}        <button className="primary wide" onClick={generateWallpaper} disabled={generating}>{generating ? copy.generating : quota > 0 ? copy.generateWallpaper : copy.quotaEmpty}</button>
         <div className="result-actions">{generatedImageUrl ? <button onClick={downloadWallpaper}>{copy.download}</button> : <button onClick={() => go("recommend")}>{copy.changeStyle}</button>}<button onClick={() => go("pay")}>{copy.buyQuota}</button></div>
       </section>
 
@@ -342,6 +356,8 @@ export default function Home() {
     </main>
   );
 }
+
+
 
 
 

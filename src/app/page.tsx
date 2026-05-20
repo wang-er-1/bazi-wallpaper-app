@@ -206,32 +206,51 @@ export default function Home() {
     void generateWallpaper(item);
   }
 
-  async function requestGeneratedImage(item: WallpaperPreview) {
-    let lastError: unknown;
+  async function requestGeneratedImage(item: WallpaperPreview): Promise<{ imageUrl: string; message?: string; mode?: string }> {
+    const startResponse = await fetch("/api/generate-wallpaper/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(item),
+    });
 
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      try {
-        const response = await fetch("/api/generate-wallpaper", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(item),
-        });
-
-        if (!response.ok) {
-          const errorData = (await response.json().catch(() => null)) as { message?: string; detail?: string } | null;
-          throw new Error([errorData?.message, errorData?.detail].filter(Boolean).join("\n") || "生成服务暂时不可用。");
-        }
-
-        return (await response.json()) as { imageUrl: string; message?: string; mode?: string };
-      } catch (error) {
-        lastError = error;
-        if (attempt === 0) await new Promise((resolve) => window.setTimeout(resolve, 900));
-      }
+    if (!startResponse.ok) {
+      const errorData = (await startResponse.json().catch(() => null)) as { message?: string } | null;
+      throw new Error(errorData?.message || "生成任务创建失败，请稍后再试。");
     }
 
-    throw lastError instanceof Error ? lastError : new Error("网络不太稳定，图片生成请求没有成功。");
-  }
+    const started = (await startResponse.json()) as { jobId?: string };
+    if (!started.jobId) throw new Error("生成任务没有返回任务编号，请稍后再试。");
 
+    setGenerationNote("任务已提交，服务器正在帮你画图。你可以停在这里等一下，不要反复点击。");
+
+    for (let attempt = 0; attempt < 110; attempt += 1) {
+      await new Promise((resolve) => window.setTimeout(resolve, attempt < 6 ? 800 : 1200));
+
+      if (attempt === 3) setGenerationNote("正在把八字、五行和今日气势整理成画面关键词。");
+      if (attempt === 8) setGenerationNote("gpt-image-2 已开始生成高清竖屏图，马上看成品。");
+      if (attempt === 18) setGenerationNote("图片还在路上，手机网络慢时会多等几秒，我还在盯着结果。");
+
+      const statusResponse = await fetch(`/api/generate-wallpaper/status?id=${encodeURIComponent(started.jobId)}`, {
+        cache: "no-store",
+      });
+
+      if (!statusResponse.ok) {
+        const errorData = (await statusResponse.json().catch(() => null)) as { message?: string } | null;
+        throw new Error(errorData?.message || "查询生成结果失败，请重试。");
+      }
+
+      const job = (await statusResponse.json()) as {
+        status?: "queued" | "running" | "succeeded" | "failed";
+        result?: { imageUrl?: string; message?: string; mode?: string };
+        error?: string;
+      };
+
+      if (job.status === "succeeded" && job.result?.imageUrl) return { imageUrl: job.result.imageUrl, message: job.result.message, mode: job.result.mode };
+      if (job.status === "failed") throw new Error(job.error || "图片生成暂时失败，请稍后再试。");
+    }
+
+    throw new Error("这次生成等待太久了。你可以先点重试，不会重复扣次数。");
+  }
   async function generateWallpaper(item: WallpaperPreview) {
     setSelectedPreview(item);
     setGeneratedImageUrl("");
@@ -438,6 +457,9 @@ export default function Home() {
     </main>
   );
 }
+
+
+
 
 
 

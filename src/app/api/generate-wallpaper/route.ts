@@ -21,13 +21,13 @@ function buildPrompt(input: GenerateRequest) {
     input.visual ? `visual direction: ${input.visual}` : "",
     "single 9:16 vertical phone wallpaper",
     "no text, no watermark, no UI mockup",
-    "high detail, polished mobile wallpaper aesthetic",
+    "ultra high definition, sharp focus, rich but clean details, polished premium mobile wallpaper aesthetic",
   ].filter(Boolean).join(", ");
 }
 
 function normalizeSize(size: string) {
   const normalized = size.replace(/[\u00d7\uff0a*]/g, "x").replace(/\s+/g, "").toLowerCase();
-  return /^\d+x\d+$/.test(normalized) ? normalized : "1024x1792";
+  return /^\d+x\d+$/.test(normalized) ? normalized : "1080x1920";
 }
 
 function mockImage(title: string) {
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
   const baseUrl = process.env.IMAGE_API_BASE_URL;
   const apiKey = process.env.IMAGE_API_KEY;
   const model = process.env.IMAGE_MODEL || "gpt-image-2";
-  const size = normalizeSize(process.env.IMAGE_SIZE || "1024x1792");
+  const size = normalizeSize(process.env.IMAGE_SIZE || "1080x1920");
   const prompt = buildPrompt(body);
 
   if (!baseUrl || !apiKey || apiKey.includes("\u586b\u4f60\u7684")) {
@@ -118,4 +118,5 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ mode: "real", imageUrl, prompt, size });
 }
+
 

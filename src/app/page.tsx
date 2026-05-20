@@ -46,7 +46,7 @@ const initialFreeQuota = 1;
 const inviteBonus = 5;
 const recordsStorageKey = "bazi-wallpaper-records";
 const quotaStorageKey = "bazi-wallpaper-quota";
-const qqGroupUrl = "#";
+const qqGroupUrl = "https://qun.qq.com/universal-share/share?ac=1&authKey=JyAmyZ%2FlTlFH0um%2FdEmKK%2FHLrMr0g9Jqt%2B0BxMG9ivf9XRPMCyslJLvG8sZ89j%2FS&busi_data=eyJncm91cENvZGUiOiI5Nzg5MDMyMjAiLCJ0b2tlbiI6IkFmd043K3ZReC9UZTRubTZZV2QzQmozQzI2V3p3SHJYRkIxOUFQbzBvVG9uUjNIRUxCZ2dQbnRLd1BWRHI4TmgiLCJ1aW4iOiIyNzk5Nzg3NTA1In0%3D&data=66EOgTHlP6zxDK2KfosW1K4c9EpRtIpfeAhPkUAKFUbLpvWs7tLXqtHhj7o-4HlVPJPzvfXurkl9mXfRt_7cRQ&svctype=4&tempid=h5_group_info";
 const generationSteps = ["排盘复核", "命理取象", "提示词成稿", "gpt-image-2 生图"];
 const analyzeSteps = ["读取出生信息", "换算四柱八字", "计算五行强弱", "匹配今日壁纸状态"];
 const elements: ElementName[] = ["木", "火", "土", "金", "水"];
@@ -197,7 +197,7 @@ export default function Home() {
   async function generateWallpaper(item: WallpaperPreview) {
     setSelectedPreview(item);
     setGeneratedImageUrl("");
-    setGenerationNote("正在生成高清壁纸，通常需要 30-120 秒。");
+    setGenerationNote("正在开画，先把你的八字取象转成画面关键词。");
     setGenerationStep(0);
     setGenerating(true);
     setScreen("result");
@@ -365,7 +365,7 @@ export default function Home() {
         <header className="page-head result-head">
           <p className="eyebrow">高清壁纸</p>
           <h1>{generating ? "正在生成" : selectedTitle}</h1>
-          <p>{generating ? "别关页面，gpt-image-2 正在出图。" : "生成成功后会自动保存到我的记录。"}</p>
+          <p>{generating ? "别关页面，正在把你的今日状态画出来。" : "生成成功后会自动保存到我的记录。"}</p>
         </header>
         <section className="single-wallpaper-wrap">
           {generatedImageUrl ? <img className="generated-wallpaper" src={generatedImageUrl} alt={`${selectedTitle}壁纸`} /> : <div className="result-placeholder"><div className="spinner" /><span>{selectedTitle}</span></div>}
@@ -381,7 +381,7 @@ export default function Home() {
           <div><span>剩余生成次数</span><b>{quota}</b></div>
           <button onClick={() => setInviteOpen(true)}>兑换邀请码</button>
         </section>
-        <button className="group-card" onClick={() => qqGroupUrl === "#" ? window.alert("先把 QQ 群链接给我，我会接到这里。") : window.open(qqGroupUrl, "_blank", "noopener,noreferrer")}>加入交流群<span>反馈效果图、领内测码、一起调风格</span></button>
+        <button className="group-card" onClick={() => window.open(qqGroupUrl, "_blank", "noopener,noreferrer")}>加入交流群<span>反馈效果图、领内测码、一起调风格</span></button>
         <section className="record-section">
           <div className="section-title slim"><h2>生成记录</h2><span>{records.length ? "点开可查看" : "生成后自动保存"}</span></div>
           {records.length ? <div className="record-grid">{records.map((item) => <button className="record-card" key={item.id} onClick={() => { setGeneratedImageUrl(item.imageUrl); setSelectedPreview({ title: item.title, visual: item.visual, basis: "", cls: "", prompt: "" }); setGenerationNote("来自生成记录。"); setScreen("result"); }}><img src={item.imageUrl} alt={item.title} /><span>{item.title}</span><small>{item.createdAt}</small></button>)}</div> : <div className="empty-record">还没有记录。先生成一张今日壁纸试试。</div>}
@@ -408,6 +408,9 @@ export default function Home() {
     </main>
   );
 }
+
+
+
 
 
 

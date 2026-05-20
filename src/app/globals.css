@@ -1598,3 +1598,68 @@ select {
     gap: 8px;
   }
 }
+
+/* v4.1: clearer birthday picker and visible reasoning process */
+.birthday-field {
+  grid-column: 1 / -1;
+}
+
+.birthday-selects {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr 0.9fr;
+  gap: 8px;
+}
+
+.birthday-selects select {
+  min-width: 0;
+  text-align: center;
+}
+
+.process-brief {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(23, 141, 143, 0.1);
+  text-align: left;
+}
+
+.process-brief b {
+  color: #111;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.process-brief span {
+  color: #67615a;
+  font-size: 12px;
+  line-height: 1.5;
+  font-weight: 760;
+}
+
+.result-process {
+  margin: 0 0 12px;
+}
+
+.analyzing-steps {
+  width: 100%;
+  margin: 4px 0 0;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.v4-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.v4-actions .primary {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 380px) {
+  .birthday-selects {
+    grid-template-columns: 1fr;
+  }
+}

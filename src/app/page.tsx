@@ -48,8 +48,26 @@ const recordsStorageKey = "bazi-wallpaper-records";
 const quotaStorageKey = "bazi-wallpaper-quota";
 const usedInvitesStorageKey = "bazi-wallpaper-used-invites";
 const qqGroupUrl = "#";
-const generationSteps = ["排盘复核", "生成提示词", "gpt-image-2 生图", "整理壁纸"];
+const generationSteps = ["排盘复核", "命理取象", "提示词成稿", "gpt-image-2 生图"];
+const analyzeSteps = ["读取出生信息", "换算四柱八字", "计算五行强弱", "匹配今日壁纸状态"];
 const elements: ElementName[] = ["木", "火", "土", "金", "水"];
+
+const currentYear = new Date().getFullYear();
+const yearOptions = Array.from({ length: 90 }, (_, index) => currentYear - index);
+const monthOptions = Array.from({ length: 12 }, (_, index) => index + 1);
+
+function daysInMonth(year: number, month: number) {
+  return new Date(year, month, 0).getDate();
+}
+
+function parseBirthDate(value: string) {
+  const [year = "1996", month = "8", day = "18"] = value.split("-");
+  return { year: Number(year), month: Number(month), day: Number(day) };
+}
+
+function formatBirthDate(year: number, month: number, day: number) {
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
 
 const birthTimeRanges = Array.from({ length: 24 }, (_, hour) => {
   const nextHour = (hour + 1) % 24;
@@ -102,6 +120,7 @@ export default function Home() {
   const [generatedImageUrl, setGeneratedImageUrl] = useState("");
   const [generationNote, setGenerationNote] = useState("");
   const [generationStep, setGenerationStep] = useState(0);
+  const [analyzeStep, setAnalyzeStep] = useState(0);
   const [generating, setGenerating] = useState(false);
   const [reasonOpen, setReasonOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -144,6 +163,17 @@ export default function Home() {
     }, 1700);
     return () => window.clearInterval(timer);
   }, [generating]);
+
+  function updateBirthDate(part: "year" | "month" | "day", value: number) {
+    setForm((current) => {
+      const date = parseBirthDate(current.birthDate);
+      const nextYear = part === "year" ? value : date.year;
+      const nextMonth = part === "month" ? value : date.month;
+      const maxDay = daysInMonth(nextYear, nextMonth);
+      const nextDay = Math.min(part === "day" ? value : date.day, maxDay);
+      return { ...current, birthDate: formatBirthDate(nextYear, nextMonth, nextDay) };
+    });
+  }
 
   async function startAnalyze() {
     setScreen("analyzing");
@@ -242,23 +272,36 @@ export default function Home() {
     }
   }
 
+  function openOriginalImage() {
+    if (!generatedImageUrl) return;
+    window.open(generatedImageUrl, "_blank", "noopener,noreferrer");
+  }
+
   async function downloadWallpaper() {
     if (!generatedImageUrl) return;
-    const response = await fetch(generatedImageUrl);
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${selectedPreview?.title ?? "今日"}-好运壁纸.png`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(url);
+    try {
+      const response = await fetch(generatedImageUrl, { mode: "cors" });
+      if (!response.ok) throw new Error("download failed");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${selectedPreview?.title ?? "今日"}-好运壁纸.png`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      openOriginalImage();
+      window.alert("微信里可能不能直接下载，已尝试打开原图。你可以长按图片保存，或右上角用浏览器打开后下载。");
+    }
   }
 
   const previews = analysis?.previews.slice(0, 3) ?? [];
   const selectedTitle = selectedPreview?.title ?? "今日壁纸";
 
+  const birthDateParts = parseBirthDate(form.birthDate);
+  const dayOptions = Array.from({ length: daysInMonth(birthDateParts.year, birthDateParts.month) }, (_, index) => index + 1);
   return (
     <main className="phone-app v4-app">
       <section className={`screen ${screen === "home" ? "active" : ""}`}>
@@ -282,7 +325,7 @@ export default function Home() {
           <div className="form-title"><span>填一下生日</span><b>生成前先分析，不会直接扣次数</b></div>
           <div className="quick-form-grid">
             <label>历法<select value={form.calendarType} onChange={(event) => setForm((current) => ({ ...current, calendarType: event.target.value }))}><option>阳历</option><option>农历</option></select></label>
-            <label>生日<input type="date" value={form.birthDate} onChange={(event) => setForm((current) => ({ ...current, birthDate: event.target.value }))} /></label>
+            <label className="birthday-field">生日<div className="birthday-selects"><select value={birthDateParts.year} onChange={(event) => updateBirthDate("year", Number(event.target.value))}>{yearOptions.map((year) => <option value={year} key={year}>{year}年</option>)}</select><select value={birthDateParts.month} onChange={(event) => updateBirthDate("month", Number(event.target.value))}>{monthOptions.map((month) => <option value={month} key={month}>{month}月</option>)}</select><select value={birthDateParts.day} onChange={(event) => updateBirthDate("day", Number(event.target.value))}>{dayOptions.map((day) => <option value={day} key={day}>{day}日</option>)}</select></div></label>
             <label>时间<select value={form.birthTime} onChange={(event) => setForm((current) => ({ ...current, birthTime: event.target.value }))}>{birthTimeRanges.map((item) => <option value={item.value} key={item.value}>{item.label}</option>)}</select></label>
             <label>性别<select value={form.gender} onChange={(event) => setForm((current) => ({ ...current, gender: event.target.value }))}><option>女</option><option>男</option><option>不填写</option></select></label>
           </div>
@@ -291,7 +334,7 @@ export default function Home() {
       </section>
 
       <section className={`screen ${screen === "analyzing" ? "active" : ""}`}>
-        <div className="loading-card v4-loading"><div className="spinner" /><h1>正在匹配</h1><p>先看八字五行，再把今天适合你的颜色、意象和状态变成壁纸方案。</p></div>
+        <div className="loading-card v4-loading"><div className="spinner" /><h1>正在匹配</h1><p>先看八字五行，再把今天适合你的颜色、意象和状态变成壁纸方案。</p><div className="generation-steps analyzing-steps">{analyzeSteps.map((step, index) => <span className={index <= analyzeStep ? "active" : ""} key={step}><i />{step}</span>)}</div><div className="process-brief"><b>正在读取</b><span>{form.calendarType} {form.birthDate} {form.birthTime}，先排盘，再给你推荐 3 个今天适合的壁纸状态。</span></div></div>
       </section>
 
       <section className={`screen ${screen === "recommend" ? "active" : ""}`}>
@@ -337,7 +380,7 @@ export default function Home() {
         </section>
         {generationNote ? <p className="generation-note">{generationNote}</p> : null}
         {generating ? <div className="generation-steps" aria-label="生成进度">{generationSteps.map((step, index) => <span className={index <= generationStep ? "active" : ""} key={step}><i />{step}</span>)}</div> : null}
-        {generatedImageUrl ? <div className="result-actions v4-actions"><button className="primary" onClick={downloadWallpaper}>下载壁纸</button><button onClick={() => setScreen("recommend")}>换一张</button><button onClick={() => setScreen("home")}>改信息</button></div> : null}
+        {generatedImageUrl ? <div className="result-actions v4-actions"><button className="primary" onClick={downloadWallpaper}>下载壁纸</button><button onClick={openOriginalImage}>打开原图</button><button onClick={() => setScreen("recommend")}>换一张</button><button onClick={() => setScreen("home")}>改信息</button></div> : null}
       </section>
 
       <section className={`screen ${screen === "mine" ? "active" : ""}`}>
@@ -373,3 +416,5 @@ export default function Home() {
     </main>
   );
 }
+
+

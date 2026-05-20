@@ -123,15 +123,27 @@ export default function Home() {
   useEffect(() => {
     const savedQuota = window.localStorage.getItem(quotaStorageKey);
     const savedRecords = window.localStorage.getItem(recordsStorageKey);
-    if (savedQuota !== null) setQuota(Math.max(0, Number(savedQuota) || 0));
+    let parsedRecords: GenerationRecord[] = [];
+
     if (savedRecords) {
       try {
         const parsed = JSON.parse(savedRecords) as GenerationRecord[];
-        setRecords(Array.isArray(parsed) ? parsed.slice(0, 20) : []);
+        parsedRecords = Array.isArray(parsed) ? parsed.slice(0, 20) : [];
+        setRecords(parsedRecords);
       } catch {
+        parsedRecords = [];
         setRecords([]);
       }
     }
+
+    if (savedQuota !== null) {
+      const storedQuota = Math.max(0, Number(savedQuota) || 0);
+      const shouldFixOldFreeQuota = storedQuota === initialFreeQuota && parsedRecords.length >= initialFreeQuota;
+      setQuota(shouldFixOldFreeQuota ? 0 : storedQuota);
+      return;
+    }
+
+    setQuota(Math.max(0, initialFreeQuota - parsedRecords.length));
   }, []);
 
   useEffect(() => {
@@ -194,6 +206,32 @@ export default function Home() {
     void generateWallpaper(item);
   }
 
+  async function requestGeneratedImage(item: WallpaperPreview) {
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const response = await fetch("/api/generate-wallpaper", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(item),
+        });
+
+        if (!response.ok) {
+          const errorData = (await response.json().catch(() => null)) as { message?: string; detail?: string } | null;
+          throw new Error([errorData?.message, errorData?.detail].filter(Boolean).join("\n") || "生成服务暂时不可用。");
+        }
+
+        return (await response.json()) as { imageUrl: string; message?: string; mode?: string };
+      } catch (error) {
+        lastError = error;
+        if (attempt === 0) await new Promise((resolve) => window.setTimeout(resolve, 900));
+      }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error("网络不太稳定，图片生成请求没有成功。");
+  }
+
   async function generateWallpaper(item: WallpaperPreview) {
     setSelectedPreview(item);
     setGeneratedImageUrl("");
@@ -203,18 +241,7 @@ export default function Home() {
     setScreen("result");
 
     try {
-      const response = await fetch("/api/generate-wallpaper", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(item),
-      });
-
-      if (!response.ok) {
-        const errorData = (await response.json().catch(() => null)) as { message?: string; detail?: string } | null;
-        throw new Error([errorData?.message, errorData?.detail].filter(Boolean).join("\n") || "生成失败");
-      }
-
-      const data = (await response.json()) as { imageUrl: string; message?: string; mode?: string };
+      const data = await requestGeneratedImage(item);
       const record: GenerationRecord = {
         id: `${Date.now()}-${item.title}`,
         title: item.title,
@@ -227,9 +254,12 @@ export default function Home() {
       setRecords((current) => [record, ...current].slice(0, 20));
       setQuota((current) => Math.max(0, current - 1));
     } catch (error) {
-      setGenerationNote("");
-      window.alert(error instanceof Error ? error.message : "图片生成暂时失败，请稍后再试。");
-      setScreen("recommend");
+      const rawMessage = error instanceof Error ? error.message : "";
+      const friendlyMessage = rawMessage === "Load failed" || rawMessage === "Failed to fetch"
+        ? "这次网络请求没有连上服务器，可能是手机网络或浏览器临时中断。你可以点重试，或换微信外部浏览器打开。"
+        : rawMessage || "图片生成暂时失败，请稍后再试。";
+      setGenerationNote(friendlyMessage);
+      setGeneratedImageUrl("");
     } finally {
       setGenerating(false);
     }
@@ -372,7 +402,7 @@ export default function Home() {
         </section>
         {generationNote ? <p className="generation-note">{generationNote}</p> : null}
         {generating ? <div className="generation-steps" aria-label="生成进度">{generationSteps.map((step, index) => <span className={index <= generationStep ? "active" : ""} key={step}><i />{step}</span>)}</div> : null}
-        {generatedImageUrl ? <div className="result-actions v4-actions"><button className="primary" onClick={downloadWallpaper}>下载壁纸</button><button onClick={openOriginalImage}>打开原图</button><button onClick={() => setScreen("recommend")}>换一张</button><button onClick={() => setScreen("home")}>改信息</button></div> : null}
+        {generatedImageUrl ? <div className="result-actions v4-actions"><button className="primary" onClick={downloadWallpaper}>下载壁纸</button><button onClick={openOriginalImage}>打开原图</button><button onClick={() => setScreen("recommend")}>换一张</button><button onClick={() => setScreen("home")}>改信息</button></div> : selectedPreview && !generating ? <div className="result-actions v4-actions"><button className="primary" onClick={() => requestGenerate(selectedPreview)}>重试生成</button><button onClick={() => setScreen("recommend")}>换一张</button><button onClick={() => setScreen("home")}>改信息</button></div> : null}
       </section>
 
       <section className={`screen ${screen === "mine" ? "active" : ""}`}>
@@ -408,6 +438,7 @@ export default function Home() {
     </main>
   );
 }
+
 
 
 

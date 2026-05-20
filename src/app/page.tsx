@@ -46,7 +46,6 @@ const initialFreeQuota = 1;
 const inviteBonus = 5;
 const recordsStorageKey = "bazi-wallpaper-records";
 const quotaStorageKey = "bazi-wallpaper-quota";
-const usedInvitesStorageKey = "bazi-wallpaper-used-invites";
 const qqGroupUrl = "#";
 const generationSteps = ["排盘复核", "命理取象", "提示词成稿", "gpt-image-2 生图"];
 const analyzeSteps = ["读取出生信息", "换算四柱八字", "计算五行强弱", "匹配今日壁纸状态"];
@@ -89,19 +88,6 @@ const moodMap: Record<string, { label: string; hook: string; className: string }
   东方山水: { label: "稳住气场", hook: "适合想要留白、山势和一点靠山感", className: "style-oriental" },
   能量光感: { label: "开启动力", hook: "适合今天想启动、提气、往前走", className: "style-energy" },
 };
-
-function makeInviteCode(index: number) {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let value = index * 7919 + 260519;
-  let tail = "";
-  for (let i = 0; i < 6; i += 1) {
-    value = (value * 37 + 17) % 999983;
-    tail += alphabet[value % alphabet.length];
-  }
-  return `BZ${String(index).padStart(3, "0")}-${tail}`;
-}
-
-const inviteCodes = new Set(Array.from({ length: 100 }, (_, index) => makeInviteCode(index + 1)));
 
 function ModelBadge() {
   return <em className="model-badge"><img className="openai-icon" src="/openai-symbol.svg" alt="" aria-hidden="true" />gpt-image-2</em>;
@@ -249,26 +235,32 @@ export default function Home() {
     }
   }
 
-  function redeemInvite() {
+  async function redeemInvite() {
     const normalized = inviteCode.trim().toUpperCase().replace(/\s+/g, "");
-    const usedCodes = JSON.parse(window.localStorage.getItem(usedInvitesStorageKey) || "[]") as string[];
-    if (!inviteCodes.has(normalized)) {
-      setInviteMessage("邀请码不对，检查一下大小写或横杠。");
+    if (!normalized) {
+      setInviteMessage("先输入邀请码。");
       return;
     }
-    if (usedCodes.includes(normalized)) {
-      setInviteMessage("这个邀请码已经在当前设备兑换过了。");
-      return;
-    }
-    window.localStorage.setItem(usedInvitesStorageKey, JSON.stringify([...usedCodes, normalized]));
-    setQuota((current) => current + inviteBonus);
-    setInviteOpen(false);
-    setInviteCode("");
-    setInviteMessage(`已领取 ${inviteBonus} 次生成机会。`);
-    if (pendingPreview) {
-      const preview = pendingPreview;
-      setPendingPreview(null);
-      window.setTimeout(() => void generateWallpaper(preview), 120);
+
+    try {
+      const response = await fetch("/api/invite/redeem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: normalized }),
+      });
+      const data = (await response.json()) as { ok?: boolean; bonus?: number; message?: string };
+      if (!response.ok || !data.ok) throw new Error(data.message || "邀请码兑换失败。");
+      setQuota((current) => current + (data.bonus || inviteBonus));
+      setInviteOpen(false);
+      setInviteCode("");
+      setInviteMessage(data.message || `已领取 ${data.bonus || inviteBonus} 次生成机会。`);
+      if (pendingPreview) {
+        const preview = pendingPreview;
+        setPendingPreview(null);
+        window.setTimeout(() => void generateWallpaper(preview), 120);
+      }
+    } catch (error) {
+      setInviteMessage(error instanceof Error ? error.message : "邀请码兑换失败。");
     }
   }
 
@@ -416,5 +408,6 @@ export default function Home() {
     </main>
   );
 }
+
 
 

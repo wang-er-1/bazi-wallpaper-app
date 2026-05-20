@@ -45,3 +45,7 @@ next-env.d.ts
 
 AGENTS.md
 CLAUDE.md
+
+# app runtime data and local admin secret
+/data/invite-codes.json
+.admin-secret.generated.txt

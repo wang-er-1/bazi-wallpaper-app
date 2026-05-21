@@ -75,9 +75,16 @@ const birthTimeRanges = Array.from({ length: 24 }, (_, hour) => {
 });
 
 const bannerSlides = [
-  { kicker: "今日壁纸", title: "测测你的今日壁纸", copy: "用出生信息和今天的气场，生成一张更顺眼、更顺手的手机壁纸。", tone: "sunrise" },
-  { kicker: "轻开运", title: "换张壁纸，换个状态", copy: "清醒、回血、启动、稳住，今天先选一个状态。", tone: "aqua" },
-  { kicker: "AI 生成", title: "不是图库随机", copy: "先看八字五行和当下月份，再交给 gpt-image-2 生成。", tone: "night" },
+  { kicker: "今日壁纸", title: "测测你的今日壁纸", copy: "输入生日后，先看八字五行和当下月份，再生成适合今天的壁纸。", tone: "sunrise" },
+  { kicker: "轻开运", title: "让手机先顺眼一点", copy: "清醒、回血、启动、稳住，不保证玄学，但会认真给你做一张好看的图。", tone: "aqua" },
+  { kicker: "AI 生成", title: "不是图库随机", copy: "每次会把你的五行状态转成专属提示词，再交给 gpt-image-2 生成高清竖屏。", tone: "night" },
+];
+
+const exampleWallpapers = [
+  { title: "火旺降躁", bazi: "丙火日主 · 今日宜水", style: "雾蓝湖光 / 清透冷感", imageUrl: "/examples/misty-blue-lake.jpg" },
+  { title: "土金补稳", bazi: "甲木偏弱 · 取土金", style: "麦田暖金 / 稳住气场", imageUrl: "/examples/golden-wheat-field.jpg" },
+  { title: "木气生发", bazi: "庚金日主 · 取木水", style: "松林晨光 / 向上生长", imageUrl: "/examples/pine-morning.jpg" },
+  { title: "金水清透", bazi: "癸水日主 · 金水相生", style: "玻璃星河 / 清醒灵感", imageUrl: "/examples/glass-starry-river.jpg" },
 ];
 
 const moodMap: Record<string, { label: string; hook: string; className: string }> = {
@@ -94,7 +101,13 @@ function ModelBadge() {
 }
 
 function styleMeta(item: WallpaperPreview) {
-  return moodMap[item.title] ?? { label: "今日适配", hook: "根据你的信息生成不同画面", className: "style-abstract" };
+  const parts = item.visual.split("｜").map((part) => part.trim()).filter(Boolean);
+  return {
+    label: parts[0] || moodMap[item.title]?.label || "今日适配",
+    hook: item.basis || moodMap[item.title]?.hook || "根据你的八字和今日气势生成不同画面。",
+    visual: parts.slice(1, 3).join(" · ") || "专属提示词",
+    className: item.cls || moodMap[item.title]?.className || "tone-pop-energy",
+  };
 }
 
 export default function Home() {
@@ -362,6 +375,12 @@ export default function Home() {
           ))}
         </section>
 
+        <section className="example-showcase" aria-label="生成示例">
+          <div className="section-title slim"><h2>别人可能会生成什么</h2><span>示例效果</span></div>
+          <div className="example-wallpapers">
+            {exampleWallpapers.map((item) => <article className="example-work" key={item.title}><img src={item.imageUrl} alt={`${item.title}示例壁纸`} /><div><b>{item.title}</b><span>{item.bazi}</span><small>{item.style}</small></div></article>)}
+          </div>
+        </section>
         <section className="home-form-card">
           <div className="form-title"><span>填一下生日</span><b>生成前先分析，不会直接扣次数</b></div>
           <div className="quick-form-grid">
@@ -457,6 +476,8 @@ export default function Home() {
     </main>
   );
 }
+
+
 
 
 

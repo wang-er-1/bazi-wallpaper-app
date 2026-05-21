@@ -19,20 +19,18 @@ type WallpaperPreview = {
   imageUrl?: string;
 };
 
-type StyleCategory = {
+type DirectionTemplate = {
   title: string;
+  status: string;
   cls: string;
-  imageUrl: string;
-  affinities: ElementName[];
-  tone: string;
+  dark?: boolean;
+  elements: ElementName[];
+  moods: string[];
+  visuals: string[];
+  palette: string;
+  material: string;
   promptStyle: string;
-};
-
-type SceneOption = {
-  visual: string;
-  prompt: string;
-  imageUrl: string;
-  cls: string;
+  promptScene: string;
 };
 
 const elementByChar: Record<string, ElementName> = {
@@ -41,14 +39,6 @@ const elementByChar: Record<string, ElementName> = {
   戊: "土", 己: "土", 辰: "土", 戌: "土", 丑: "土", 未: "土",
   庚: "金", 辛: "金", 申: "金", 酉: "金",
   壬: "水", 癸: "水", 子: "水", 亥: "水",
-};
-
-const elementLabel: Record<ElementName, string> = {
-  木: "生长、舒展、植物、清晨感",
-  火: "日光、霞色、热烈、生命力",
-  土: "稳定、山地、沙丘、麦田、暖黄米色",
-  金: "秩序、清爽、金属、岩石、银白",
-  水: "流动、雾气、湖面、清透、蓝白",
 };
 
 const dayMasterTemperament: Record<ElementName, string> = {
@@ -62,71 +52,20 @@ const dayMasterTemperament: Record<ElementName, string> = {
 const producingElement: Record<ElementName, ElementName> = { 木: "水", 火: "木", 土: "火", 金: "土", 水: "金" };
 const producedElement: Record<ElementName, ElementName> = { 木: "火", 火: "土", 土: "金", 金: "水", 水: "木" };
 const controllingElement: Record<ElementName, ElementName> = { 木: "金", 火: "水", 土: "木", 金: "火", 水: "土" };
-
 const elementKey: Record<ElementName, string> = { 木: "wood", 火: "fire", 土: "earth", 金: "metal", 水: "water" };
-const categoryKey: Record<string, string> = {
-  自然风景: "nature",
-  抽象艺术: "abstract",
-  治愈插画: "healing",
-  极简质感: "minimal",
-  东方山水: "oriental",
-  能量光感: "energy",
-};
 
-function coverUrl(element: ElementName, categoryTitle: string) {
-  return `/covers/${elementKey[element]}-${categoryKey[categoryTitle] ?? "nature"}-01.svg`;
-}
-const categories: StyleCategory[] = [
-  { title: "自然风景", cls: "mist", imageUrl: "/previews/mist-lake.svg", affinities: ["木", "水", "土", "火"], tone: "真实、有空气感、适合做锁屏", promptStyle: "photorealistic cinematic landscape photography" },
-  { title: "抽象艺术", cls: "sand", imageUrl: "/previews/sand-waves.svg", affinities: ["火", "土", "金", "水"], tone: "不直接画物体，但保留情绪和色彩能量", promptStyle: "modern abstract wallpaper, elegant shapes, premium color composition" },
-  { title: "治愈插画", cls: "golden", imageUrl: "/previews/golden-wheat.svg", affinities: ["木", "火", "土"], tone: "柔和、年轻、轻故事感", promptStyle: "soft editorial illustration, refined youthful wallpaper style" },
-  { title: "极简质感", cls: "metal", imageUrl: "/previews/sand-waves.svg", affinities: ["金", "土", "水"], tone: "干净、克制、适合不想太花的人", promptStyle: "minimal premium texture wallpaper, restrained composition" },
-  { title: "东方山水", cls: "rock", imageUrl: "/previews/danxia-rock.svg", affinities: ["土", "金", "水", "木"], tone: "国风但不老气，留白和山势更强", promptStyle: "modern oriental landscape, cinematic negative space, premium Asian aesthetic" },
-  { title: "能量光感", cls: "fiery", imageUrl: "/previews/fiery-clouds.svg", affinities: ["火", "金", "水"], tone: "更有冲劲，适合需要启动感的人", promptStyle: "luminous energy wallpaper, polished light, dramatic but clean" },
+const directionTemplates: DirectionTemplate[] = [
+  { title: "雾蓝降躁", status: "清醒回血", cls: "tone-water-calm", elements: ["水", "金"], moods: ["火旺需要降温", "想让脑子清一点", "适合忙乱后恢复"], visuals: ["雾蓝湖面", "远山水气", "玻璃般的浅蓝光"], palette: "雾蓝、银白、浅灰", material: "水雾、玻璃、湖面反光", promptStyle: "photorealistic misty lake wallpaper, airy blue and silver palette", promptScene: "misty blue lake, distant mountains, translucent water vapor, soft silver light, very clean and calming" },
+  { title: "麦金稳住", status: "踏实一点", cls: "tone-earth-gold", elements: ["土", "金"], moods: ["适合补稳定感", "适合把心落下来", "偏向收束和安全感"], visuals: ["金色麦田", "低坡沙丘", "夕阳落在大地纹理上"], palette: "麦金、奶油、陶土", material: "麦穗、沙丘、暖光颗粒", promptStyle: "cinematic golden wheat field wallpaper, warm grounded atmosphere", promptScene: "vast golden wheat field and gentle rolling hills at sunset, rich warm light, premium mobile wallpaper" },
+  { title: "松林生发", status: "向上生长", cls: "tone-wood-fresh", elements: ["木", "水"], moods: ["适合补行动力", "适合舒展和开启", "偏向新开始"], visuals: ["晨雾松林", "新芽和斜阳", "山谷里向上的绿意"], palette: "松绿、晨白、浅金", material: "树影、晨雾、叶面光", promptStyle: "fresh forest morning wallpaper, refined botanical landscape", promptScene: "morning pine forest with soft mist, fresh green growth, warm first sunlight, elegant and not childish" },
+  { title: "日光启动", status: "提气开工", cls: "tone-fire-sun", elements: ["火", "木"], moods: ["适合需要启动感", "适合低电量时提气", "偏向明亮和行动"], visuals: ["橙金云层", "日出光带", "温暖但不刺眼的天空"], palette: "橙金、珊瑚、奶白", material: "云、霞光、柔焦颗粒", promptStyle: "golden sunrise sky wallpaper, uplifting cinematic light", promptScene: "glowing orange sunrise clouds, soft golden rays, hopeful atmosphere, clean full bleed vertical wallpaper" },
+  { title: "银白秩序", status: "专注收束", cls: "tone-metal-clear", elements: ["金", "土"], moods: ["适合减少杂念", "适合建立边界", "偏向干净和高级"], visuals: ["银白山脊", "磨砂金属光", "清爽留白结构"], palette: "银白、香槟金、浅岩灰", material: "岩石、金属、细线留白", promptStyle: "minimal premium silver mountain wallpaper, clean structured composition", promptScene: "silver white mountain ridges, champagne light, crisp air, minimalist luxury phone wallpaper" },
+  { title: "奶油松弛", status: "轻松一点", cls: "tone-cream-soft", elements: ["土", "木", "火"], moods: ["适合温柔回血", "适合不想太玄", "偏向软和与亲近感"], visuals: ["奶油纸感", "软色植物", "午后窗光"], palette: "奶油、蜜桃、浅绿", material: "纸张、布纹、柔软阴影", promptStyle: "soft editorial illustration wallpaper, cozy youthful paper texture", promptScene: "cream paper collage with soft plants and afternoon sunlight, warm gentle tactile texture, modern young aesthetic" },
+  { title: "星河清透", status: "打开想象", cls: "tone-star-glass", dark: true, elements: ["水", "金"], moods: ["适合灵感和观察", "适合夜间也耐看", "偏向清透冷感"], visuals: ["玻璃星河", "蓝黑夜色", "细碎银光"], palette: "深蓝、银白、透明青", material: "星光、玻璃、夜雾", promptStyle: "premium glassy starfield wallpaper, elegant dark blue cyan palette", promptScene: "deep blue starfield reflected in translucent glass waves, tiny silver lights, calm premium vertical wallpaper" },
+  { title: "东方留白", status: "稳中有远", cls: "tone-oriental-ink", elements: ["水", "木", "土", "金"], moods: ["适合要一点靠山感", "适合克制不花", "偏向安静但有气势"], visuals: ["远山留白", "淡墨水气", "一线山脊"], palette: "米白、墨青、岩灰", material: "宣纸、雾、山石", promptStyle: "modern oriental landscape wallpaper, refined negative space", promptScene: "minimal misty oriental mountains, warm ivory paper texture, ink green rocks, elegant negative space" },
+  { title: "能量色块", status: "换个心情", cls: "tone-pop-energy", elements: ["火", "土", "水"], moods: ["适合想要一点新鲜感", "适合换状态", "偏向大胆但不乱"], visuals: ["大色块渐变", "柔软流线", "明亮情绪场"], palette: "珊瑚、青蓝、暖黄", material: "渐变、光晕、丝滑曲面", promptStyle: "bold premium abstract gradient wallpaper, smooth emotional color fields", promptScene: "large smooth gradient color fields, coral cyan warm yellow, silky curves, young premium aesthetic, no chaos" },
+  { title: "复古好运", status: "有点好玩", cls: "tone-retro-luck", elements: ["火", "金", "土"], moods: ["适合轻快一点", "适合想要好彩头", "偏向俏皮但不幼稚"], visuals: ["复古日历色块", "暖色几何", "小小好运感"], palette: "番茄红、奶油黄、墨黑", material: "海报纸、颗粒、几何拼贴", promptStyle: "retro poster inspired wallpaper, tasteful graphic shapes, no text", promptScene: "retro geometric poster style without any text, tomato red cream yellow black accents, tasteful lucky mood, full bleed wallpaper" },
 ];
-
-const sceneBank: Record<ElementName, Record<string, SceneOption[]>> = {
-  木: {
-    自然风景: [{ visual: "清晨山谷、新芽、薄雾和向上生长的枝叶", prompt: "early morning valley with fresh sprouts and slender branches, soft mist, gentle sunlight, fresh green kept elegant and not oversaturated", imageUrl: "/previews/mist-lake.svg", cls: "mist" }],
-    抽象艺术: [{ visual: "柔和向上曲线、浅青绿和奶白色，像植物生长轨迹", prompt: "abstract upward flowing botanical curves, pale sage green and warm ivory, calm growth rhythm, no messy lines", imageUrl: "/previews/sand-waves.svg", cls: "sand" }],
-    治愈插画: [{ visual: "小植物、晨光窗台、软萌但不幼稚", prompt: "healing illustration of small plants on a sunlit windowsill, soft morning light, warm youthful design, no characters", imageUrl: "/previews/golden-wheat.svg", cls: "golden" }],
-    极简质感: [{ visual: "米白纸面上一条舒展的浅绿枝影", prompt: "minimal warm ivory paper background with one elegant pale green branch shadow, premium calm wallpaper", imageUrl: "/previews/sand-waves.svg", cls: "sand" }],
-    东方山水: [{ visual: "松风远山、云影和留白", prompt: "pine trees and distant mountains, flowing clouds, refined modern Chinese landscape, generous negative space", imageUrl: "/previews/mist-lake.svg", cls: "mist" }],
-    能量光感: [{ visual: "浅绿到金色的生长光带", prompt: "soft luminous ribbons from pale green to warm gold, feeling of growth and renewal, clean premium energy wallpaper", imageUrl: "/previews/fiery-clouds.svg", cls: "fiery" }],
-  },
-  火: {
-    自然风景: [{ visual: "日出云海、暖橙霞光、没有刺眼太阳", prompt: "sunrise over clouds, warm peach and orange glow, no harsh sun disk, soft atmospheric landscape", imageUrl: "/previews/fiery-clouds.svg", cls: "fiery" }],
-    抽象艺术: [{ visual: "橙红到奶油色渐变，像夕阳落在空气里", prompt: "abstract sunset gradient from warm orange red to cream, atmospheric glow, smooth modern composition", imageUrl: "/previews/sand-waves.svg", cls: "sand" }],
-    治愈插画: [{ visual: "暖光房间、橘色小太阳、温柔生活感", prompt: "soft illustration of a warm sunlit room, orange glow, cozy and optimistic, no people, no text", imageUrl: "/previews/golden-wheat.svg", cls: "golden" }],
-    极简质感: [{ visual: "暖橙光影落在米色墙面", prompt: "minimal beige wall with soft warm orange sunlight shadows, calm elegant texture, no objects", imageUrl: "/previews/sand-waves.svg", cls: "sand" }],
-    东方山水: [{ visual: "晚霞照亮山脊，暖金色留白", prompt: "mountain ridges lit by golden sunset, warm mist, modern oriental landscape with spacious negative space", imageUrl: "/previews/danxia-rock.svg", cls: "rock" }],
-    能量光感: [{ visual: "火烧云、金橙光层、启动感强", prompt: "intense golden orange sunset clouds filling the frame, dramatic warm sky, clean full-bleed wallpaper", imageUrl: "/previews/fiery-clouds.svg", cls: "fiery" }],
-  },
-  土: {
-    自然风景: [{ visual: "沙丘、麦田、山谷，画面稳定开阔", prompt: "warm desert dunes and distant hills at golden hour, stable open landscape, no water, no people", imageUrl: "/previews/golden-wheat.svg", cls: "golden" }],
-    抽象艺术: [{ visual: "沙色、陶土色、奶油色的柔和块面", prompt: "abstract soft sand waves in clay, cream and ochre tones, premium modern art wallpaper", imageUrl: "/previews/sand-waves.svg", cls: "sand" }],
-    治愈插画: [{ visual: "麦田、陶罐、日光，温暖踏实", prompt: "warm editorial illustration of golden wheat and handmade clay pots under sunlight, comforting and grounded", imageUrl: "/previews/golden-wheat.svg", cls: "golden" }],
-    极简质感: [{ visual: "微水泥、陶土、暖沙质感", prompt: "warm beige micro-cement and clay texture, matte finish, subtle natural shadows, minimalist premium wallpaper", imageUrl: "/previews/sand-waves.svg", cls: "sand" }],
-    东方山水: [{ visual: "丹霞岩层、黄土山势、厚重稳定", prompt: "warm Danxia layered sandstone landform, ochre and terracotta, powerful grounded landscape, no people", imageUrl: "/previews/danxia-rock.svg", cls: "rock" }],
-    能量光感: [{ visual: "暖黄光落在大地纹理上", prompt: "warm golden light spreading over earth textures, calm energy, elegant full-screen wallpaper", imageUrl: "/previews/fiery-clouds.svg", cls: "fiery" }],
-  },
-  金: {
-    自然风景: [{ visual: "雪白山峰、岩石、清爽天空，秩序感强", prompt: "clean silver-white mountain peaks and structured rocks, crisp light, elegant landscape, no clutter", imageUrl: "/previews/mist-lake.svg", cls: "mist" }],
-    抽象艺术: [{ visual: "银白线条、香槟金块面、干净结构", prompt: "abstract composition with silver-white lines and champagne gold planes, clean order, premium modern wallpaper", imageUrl: "/previews/sand-waves.svg", cls: "sand" }],
-    治愈插画: [{ visual: "小月亮、银白星点、柔和守护感", prompt: "soft illustration of a silver moon and tiny warm stars, gentle protective feeling, clean youthful wallpaper", imageUrl: "/previews/mist-lake.svg", cls: "mist" }],
-    极简质感: [{ visual: "银白、磨砂金属、细线留白", prompt: "minimal matte silver and champagne metal texture, fine micro-lines, luxurious but understated", imageUrl: "/previews/sand-waves.svg", cls: "sand" }],
-    东方山水: [{ visual: "白石山、月色、清冷留白", prompt: "white stone mountains under moonlight, modern oriental composition, silver palette, calm negative space", imageUrl: "/previews/mist-lake.svg", cls: "mist" }],
-    能量光感: [{ visual: "金白光轨、清爽、有边界", prompt: "gold and white luminous light trails, structured and clean, no neon mess, premium energy wallpaper", imageUrl: "/previews/fiery-clouds.svg", cls: "fiery" }],
-  },
-  水: {
-    自然风景: [{ visual: "湖面、雾气、远山，清透流动", prompt: "misty lake with distant mountains, pale blue white palette, soft fog, quiet full-bleed vertical wallpaper", imageUrl: "/previews/mist-lake.svg", cls: "mist" }],
-    抽象艺术: [{ visual: "蓝白透明流线、柔和波纹", prompt: "abstract translucent blue-white flowing waves, soft gradients, calm and clean modern wallpaper", imageUrl: "/previews/mist-lake.svg", cls: "mist" }],
-    治愈插画: [{ visual: "雨后窗光、小水滴、安静治愈", prompt: "soft illustration of quiet raindrops on a bright window, healing and clean, no dark mood", imageUrl: "/previews/mist-lake.svg", cls: "mist" }],
-    极简质感: [{ visual: "玻璃、水雾、浅蓝灰留白", prompt: "minimal frosted glass texture with pale blue-grey mist, clean premium phone wallpaper", imageUrl: "/previews/mist-lake.svg", cls: "mist" }],
-    东方山水: [{ visual: "烟雨远山、淡墨水气", prompt: "misty ink mountains with water vapor, modern Chinese landscape, pale blue grey and white, elegant negative space", imageUrl: "/previews/mist-lake.svg", cls: "mist" }],
-    能量光感: [{ visual: "蓝白光流，安静流动", prompt: "blue-white luminous flow, calm water-like energy, polished clean wallpaper, not dark", imageUrl: "/previews/mist-lake.svg", cls: "mist" }],
-  },
-};
 
 function parseDateParts(birthDate: string, birthTime: string) {
   const [year = "1996", month = "8", day = "18"] = birthDate.split("-");
@@ -165,8 +104,8 @@ function getUsefulElements(dayMaster: ElementName, counts: Record<ElementName, n
   const pressureScore = counts[controllingElement[dayMaster]] + counts[producedElement[dayMaster]];
   const isWeak = supportScore <= pressureScore;
   const useful = isWeak
-    ? [dayMaster, producingElement[dayMaster]]
-    : [producedElement[dayMaster], controllingElement[dayMaster]];
+    ? [dayMaster, producingElement[dayMaster], producedElement[producingElement[dayMaster]]]
+    : [producedElement[dayMaster], controllingElement[dayMaster], producedElement[producedElement[dayMaster]]];
   const avoid = isWeak
     ? [controllingElement[dayMaster], producedElement[dayMaster]]
     : [dayMaster, producingElement[dayMaster]];
@@ -182,26 +121,43 @@ function hashText(value: string) {
   return Math.abs(hash >>> 0);
 }
 
-function pickPrimaryElement(category: StyleCategory, useful: ElementName[], seed: number): ElementName {
-  const bestFit = useful.find((element) => category.affinities.includes(element));
-  return bestFit ?? useful[(seed + category.title.length) % useful.length];
-}
-
-function pickScene(category: StyleCategory, primary: ElementName, seed: number): SceneOption {
-  const scenes = sceneBank[primary][category.title] ?? sceneBank[primary].自然风景;
-  return scenes[seed % scenes.length];
+function scoreTemplate(template: DirectionTemplate, useful: ElementName[], avoid: ElementName[], seed: number, index: number) {
+  const usefulScore = template.elements.reduce((sum, element) => sum + (useful.includes(element) ? 10 : 0), 0);
+  const avoidPenalty = template.elements.reduce((sum, element) => sum + (avoid.includes(element) ? 4 : 0), 0);
+  const variety = ((seed >> (index % 12)) & 15) * 0.55;
+  return usefulScore + variety - avoidPenalty;
 }
 
 function buildTheme(params: { dayMaster: ElementName; useful: ElementName[]; avoid: ElementName[]; isWeak: boolean; currentMonth: string }) {
   const usefulText = params.useful.join("、");
   const avoidText = params.avoid.join("、");
   return {
-    title: `${params.dayMaster}日主${params.isWeak ? "偏弱" : "偏旺"}，先看${usefulText}`,
-    copy: `当前月份为 ${params.currentMonth}。系统会先排八字和五行，再把${usefulText}转成不同壁纸大风格，你选方向，AI再生成具体画面。`,
-    relation: `当前月柱：${params.currentMonth}。日主为${params.dayMaster}，${dayMasterTemperament[params.dayMaster]}。本次建议少用${avoidText}过重的画面。`,
+    title: `${params.dayMaster}日主${params.isWeak ? "偏弱" : "偏旺"}，今天先看${usefulText}`,
+    copy: `当前月份为 ${params.currentMonth}。系统会把你的八字、五行强弱和今日气势，转成几种不同壁纸状态。`,
+    relation: `当前月柱：${params.currentMonth}。日主为${params.dayMaster}，${dayMasterTemperament[params.dayMaster]}。本次建议多用${usefulText}，少让${avoidText}过重。`,
     usefulText,
     avoidText,
   };
+}
+
+function buildPrompt(params: {
+  template: DirectionTemplate;
+  parts: string[];
+  dayMaster: ElementName;
+  usefulText: string;
+  avoidText: string;
+  currentMonth: string;
+}) {
+  return [
+    params.template.promptScene,
+    `visual style: ${params.template.promptStyle}`,
+    `palette: ${params.template.palette}`,
+    `materials: ${params.template.material}`,
+    `personalized by Chinese Bazi chart ${params.parts.join(" ")}, day master ${params.dayMaster}, current month pillar ${params.currentMonth}`,
+    `recommended elements: ${params.usefulText}; avoid overusing ${params.avoidText}`,
+    "single 9:16 vertical smartphone wallpaper, gpt-image-2, ultra high definition, sharp clean details, premium mobile wallpaper aesthetic",
+    "no text, no typography, no logo, no watermark, no UI, no phone frame, no people",
+  ].join(". ");
 }
 
 function buildPersonalPreviews(params: {
@@ -218,24 +174,28 @@ function buildPersonalPreviews(params: {
   currentMonth: string;
 }): WallpaperPreview[] {
   const seed = hashText(`${params.parts.join("")}|${params.birthDate}|${params.birthTime}|${params.gender ?? ""}|${params.currentMonth}`);
-  const scored = categories.map((category, index) => {
-    const affinityScore = category.affinities.reduce((score, element) => score + (params.useful.includes(element) ? 9 : 0), 0);
-    const avoidPenalty = category.affinities.reduce((score, element) => score + (params.avoid.includes(element) ? 3 : 0), 0);
-    const variety = ((seed >> (index % 10)) & 7) * 0.4;
-    return { category, score: affinityScore + variety - avoidPenalty };
-  }).sort((a, b) => b.score - a.score);
+  const sorted = directionTemplates
+    .map((template, index) => ({ template, score: scoreTemplate(template, params.useful, params.avoid, seed, index) }))
+    .sort((a, b) => b.score - a.score);
 
-  return scored.slice(0, 5).map(({ category }, index) => {
-    const primary = pickPrimaryElement(category, params.useful, seed + index * 17);
-    const scene = pickScene(category, primary, seed + index * 17);
-    const prompt = `${scene.prompt}. Style direction: ${category.promptStyle}. Personalized by Chinese Bazi chart ${params.parts.join(" ")}; day master ${params.dayMaster}; recommended elements ${params.usefulText}; avoid overusing ${params.avoidText}. No text, no typography, no logo, no watermark, no UI, no phone frame, no people, full bleed vertical smartphone wallpaper, beautiful premium aesthetic, 1080x1920.`;
+  const picked: DirectionTemplate[] = [];
+  for (const item of sorted) {
+    if (picked.length >= 4) break;
+    const tooSimilar = picked.some((chosen) => chosen.status === item.template.status || chosen.cls === item.template.cls);
+    if (!tooSimilar) picked.push(item.template);
+  }
+  while (picked.length < 4) picked.push(sorted[picked.length].template);
+
+  return picked.map((template, index) => {
+    const mood = template.moods[(seed + index) % template.moods.length];
+    const visual = template.visuals[(seed + index * 3) % template.visuals.length];
     return {
-      title: category.title,
-      basis: `你的日主为${params.dayMaster}，这次更适合用${params.usefulText}来平衡；「${category.title}」会被细化成：${scene.visual}。`,
-      visual: `${category.tone}｜${scene.visual}`,
-      cls: category.cls,
-      prompt,
-      imageUrl: coverUrl(primary, category.title),
+      title: template.title,
+      basis: `你的日主为${params.dayMaster}，当前更适合用${params.usefulText}来调和；这张会走「${template.status}」路线：${mood}。`,
+      visual: `${template.status}｜${visual}｜${template.palette}｜${template.material}`,
+      cls: `${template.cls}${template.dark ? " is-dark" : ""}`,
+      prompt: buildPrompt({ template, parts: params.parts, dayMaster: params.dayMaster, usefulText: params.usefulText, avoidText: params.avoidText, currentMonth: params.currentMonth }),
+      imageUrl: `/covers/${elementKey[template.elements[0]]}-abstract-01.svg`,
     };
   });
 }
@@ -261,7 +221,7 @@ export async function POST(request: Request) {
     monthRelation: theme.relation,
     themeTitle: theme.title,
     themeCopy: theme.copy,
-    reasoning: `系统先根据出生时间排出四柱：${parts.join(" ")}；再统计五行为木${counts.木}、火${counts.火}、土${counts.土}、金${counts.金}、水${counts.水}。随后取日柱天干判断日主为${dayMaster}，结合生扶分${useful.supportScore}、消耗制约分${useful.pressureScore}，判断为${useful.isWeak ? "偏弱" : "偏旺"}。因此不是固定推荐某几张图，而是把${theme.usefulText}翻译成自然风景、抽象艺术、治愈插画、极简质感等不同大方向，再为每个方向生成不同提示词。`,
+    reasoning: `系统先根据出生时间排出四柱：${parts.join(" ")}；再统计五行为木${counts.木}、火${counts.火}、土${counts.土}、金${counts.金}、水${counts.水}。随后取日柱天干判断日主为${dayMaster}，结合生扶分${useful.supportScore}、消耗制约分${useful.pressureScore}，判断为${useful.isWeak ? "偏弱" : "偏旺"}。所以推荐不是固定的分类，而是从${directionTemplates.length}组状态模板里，按${theme.usefulText}、${theme.avoidText}、月份和生日种子重新排序组合，再生成不同提示词。`,
     previews: buildPersonalPreviews({
       dayMaster,
       useful: useful.useful,
@@ -277,5 +237,3 @@ export async function POST(request: Request) {
     }),
   });
 }
-
-

@@ -87,3 +87,4 @@ export async function generateWallpaperImage(input: GenerateRequest) {
     clearTimeout(timeout);
   }
 }
+

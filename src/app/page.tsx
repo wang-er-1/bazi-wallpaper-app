@@ -289,7 +289,9 @@ export default function Home() {
       const rawMessage = error instanceof Error ? error.message : "";
       const friendlyMessage = rawMessage === "Load failed" || rawMessage === "Failed to fetch"
         ? "这次网络请求没有连上服务器，可能是手机网络或浏览器临时中断。你可以点重试，或换微信外部浏览器打开。"
-        : rawMessage || "图片生成暂时失败，请稍后再试。";
+        : rawMessage.toLowerCase().includes("fetch failed")
+          ? "服务器这次没有连上图片生成服务，可能是中转接口网络波动。你可以先点重试；如果连续失败，我需要看服务器日志。"
+          : rawMessage || "图片生成暂时失败，请稍后再试。";
       setGenerationNote(friendlyMessage);
       setGeneratedImageUrl("");
     } finally {
@@ -412,7 +414,7 @@ export default function Home() {
                 <div className="style-card-head"><span>{meta.label}</span><ModelBadge /></div>
                 <h2>{item.title}</h2>
                 <p>{meta.hook}</p>
-                <div className="style-tags"><span>{item.visual.split("｜")[0]}</span><span>{item.visual.split("｜")[1] ?? "专属提示词"}</span></div>
+                <div className="style-tags"><span>{meta.label}</span><span>{meta.visual}</span></div>
                 <button className="primary wide" onClick={() => requestGenerate(item)}>立即生成</button>
               </article>
             );
@@ -439,6 +441,7 @@ export default function Home() {
           {generatedImageUrl ? <img className="generated-wallpaper" src={generatedImageUrl} alt={`${selectedTitle}壁纸`} /> : <div className="result-placeholder"><div className="spinner" /><span>{selectedTitle}</span></div>}
         </section>
         {generationNote ? <p className="generation-note">{generationNote}</p> : null}
+        {selectedPreview ? <section className="live-reasoning"><b>{generating ? "正在这样画" : "生成依据"}</b><span>{selectedPreview.basis}</span><small>{selectedPreview.visual}</small></section> : null}
         {generating ? <div className="generation-steps" aria-label="生成进度">{generationSteps.map((step, index) => <span className={index <= generationStep ? "active" : ""} key={step}><i />{step}</span>)}</div> : null}
         {generatedImageUrl ? <div className="result-actions v4-actions"><button className="primary" onClick={downloadWallpaper}>下载壁纸</button><button onClick={openOriginalImage}>打开原图</button><button onClick={() => setScreen("recommend")}>换一张</button><button onClick={() => setScreen("home")}>改信息</button></div> : selectedPreview && !generating ? <div className="result-actions v4-actions"><button className="primary" onClick={() => requestGenerate(selectedPreview)}>重试生成</button><button onClick={() => setScreen("recommend")}>换一张</button><button onClick={() => setScreen("home")}>改信息</button></div> : null}
       </section>
@@ -476,6 +479,7 @@ export default function Home() {
     </main>
   );
 }
+
 
 
 

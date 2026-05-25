@@ -132,9 +132,9 @@ function buildTheme(params: { dayMaster: ElementName; useful: ElementName[]; avo
   const usefulText = params.useful.join("、");
   const avoidText = params.avoid.join("、");
   return {
-    title: `${params.dayMaster}日主${params.isWeak ? "偏弱" : "偏旺"}，今天先看${usefulText}`,
-    copy: `当前月份为 ${params.currentMonth}。系统会把你的八字、五行强弱和今日气势，转成几种不同壁纸状态。`,
-    relation: `当前月柱：${params.currentMonth}。日主为${params.dayMaster}，${dayMasterTemperament[params.dayMaster]}。本次建议多用${usefulText}，少让${avoidText}过重。`,
+    title: `今天适合多用${usefulText}来调和`,
+    copy: `当前月份为 ${params.currentMonth}。我会把你的五行状态转成几种壁纸方向，你选一个喜欢的，再生成高清图。`,
+    relation: `当前月柱：${params.currentMonth}。你的日主为${params.dayMaster}，${dayMasterTemperament[params.dayMaster]}。今天更建议用${usefulText}相关的颜色、材质和意象，少用${avoidText}过重的画面。`,
     usefulText,
     avoidText,
   };
@@ -191,7 +191,7 @@ function buildPersonalPreviews(params: {
     const visual = template.visuals[(seed + index * 3) % template.visuals.length];
     return {
       title: template.title,
-      basis: `你的日主为${params.dayMaster}，当前更适合用${params.usefulText}来调和；这张会走「${template.status}」路线：${mood}。`,
+      basis: `推荐原因：你当前更适合用${params.usefulText}来调和状态，所以这张走「${template.status}」路线；它会用${template.palette}和${template.material}，让画面更接近「${mood}」。`,
       visual: `${template.status}｜${visual}｜${template.palette}｜${template.material}`,
       cls: `${template.cls}${template.dark ? " is-dark" : ""}`,
       prompt: buildPrompt({ template, parts: params.parts, dayMaster: params.dayMaster, usefulText: params.usefulText, avoidText: params.avoidText, currentMonth: params.currentMonth }),
@@ -221,7 +221,7 @@ export async function POST(request: Request) {
     monthRelation: theme.relation,
     themeTitle: theme.title,
     themeCopy: theme.copy,
-    reasoning: `系统先根据出生时间排出四柱：${parts.join(" ")}；再统计五行为木${counts.木}、火${counts.火}、土${counts.土}、金${counts.金}、水${counts.水}。随后取日柱天干判断日主为${dayMaster}，结合生扶分${useful.supportScore}、消耗制约分${useful.pressureScore}，判断为${useful.isWeak ? "偏弱" : "偏旺"}。所以推荐不是固定的分类，而是从${directionTemplates.length}组状态模板里，按${theme.usefulText}、${theme.avoidText}、月份和生日种子重新排序组合，再生成不同提示词。`,
+    reasoning: `简单说：系统先把你的出生信息换算成四柱八字（年、月、日、时），再看五行分布。你这次木${counts.木}、火${counts.火}、土${counts.土}、金${counts.金}、水${counts.水}；日主偏${useful.isWeak ? "需要补足和扶一扶" : "需要疏导和平衡"}。所以我不是固定给所有人同一批风格，而是优先选择${theme.usefulText}相关的颜色、材质和意象，再从${directionTemplates.length}组状态模板里挑出今天更适合你的几种壁纸方向。`,
     previews: buildPersonalPreviews({
       dayMaster,
       useful: useful.useful,
@@ -237,3 +237,4 @@ export async function POST(request: Request) {
     }),
   });
 }
+

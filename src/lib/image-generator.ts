@@ -3,6 +3,7 @@
   prompt?: string;
   visual?: string;
   imageUrl?: string;
+  userId?: string;
 };
 
 type ImageApiResponse = {
@@ -87,4 +88,5 @@ export async function generateWallpaperImage(input: GenerateRequest) {
     clearTimeout(timeout);
   }
 }
+
 

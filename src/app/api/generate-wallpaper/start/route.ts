@@ -1,12 +1,21 @@
 ﻿import { NextResponse } from "next/server";
 import { createGenerationJob } from "@/lib/generation-jobs";
 import type { GenerateRequest } from "@/lib/image-generator";
+import { canUserGenerate, ensureAnonymousUser } from "@/lib/user-store";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as GenerateRequest;
+    if (body.userId) {
+      await ensureAnonymousUser(body.userId);
+      const canGenerate = await canUserGenerate(body.userId);
+      if (!canGenerate) {
+        return NextResponse.json({ message: "你的体验次数已用完，兑换邀请码后可以继续生成。" }, { status: 402 });
+      }
+    }
+
     const job = createGenerationJob(body);
     return NextResponse.json({ jobId: job.id, status: job.status });
   } catch (error) {

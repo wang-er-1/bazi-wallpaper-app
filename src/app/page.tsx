@@ -46,6 +46,7 @@ const initialFreeQuota = 1;
 const inviteBonus = 5;
 const recordsStorageKey = "bazi-wallpaper-records";
 const quotaStorageKey = "bazi-wallpaper-quota";
+const userStorageKey = "bazi-wallpaper-user-id";
 const qqGroupUrl = "https://qun.qq.com/universal-share/share?ac=1&authKey=JyAmyZ%2FlTlFH0um%2FdEmKK%2FHLrMr0g9Jqt%2B0BxMG9ivf9XRPMCyslJLvG8sZ89j%2FS&busi_data=eyJncm91cENvZGUiOiI5Nzg5MDMyMjAiLCJ0b2tlbiI6IkFmd043K3ZReC9UZTRubTZZV2QzQmozQzI2V3p3SHJYRkIxOUFQbzBvVG9uUjNIRUxCZ2dQbnRLd1BWRHI4TmgiLCJ1aW4iOiIyNzk5Nzg3NTA1In0%3D&data=66EOgTHlP6zxDK2KfosW1K4c9EpRtIpfeAhPkUAKFUbLpvWs7tLXqtHhj7o-4HlVPJPzvfXurkl9mXfRt_7cRQ&svctype=4&tempid=h5_group_info";
 const generationSteps = ["排盘复核", "命理取象", "提示词成稿", "gpt-image-2 生图"];
 const analyzeSteps = ["读取出生信息", "换算四柱八字", "计算五行强弱", "匹配今日壁纸状态"];
@@ -113,6 +114,7 @@ function styleMeta(item: WallpaperPreview) {
 export default function Home() {
   const [screen, setScreen] = useState<Screen>("home");
   const [quota, setQuota] = useState(initialFreeQuota);
+  const [userId, setUserId] = useState("");
   const [records, setRecords] = useState<GenerationRecord[]>([]);
   const [analysis, setAnalysis] = useState<AnalyzeResult | null>(null);
   const [selectedPreview, setSelectedPreview] = useState<WallpaperPreview | null>(null);
@@ -149,14 +151,33 @@ export default function Home() {
       }
     }
 
-    if (savedQuota !== null) {
-      const storedQuota = Math.max(0, Number(savedQuota) || 0);
-      const shouldFixOldFreeQuota = storedQuota === initialFreeQuota && parsedRecords.length >= initialFreeQuota;
-      setQuota(shouldFixOldFreeQuota ? 0 : storedQuota);
-      return;
-    }
+    const existingUserId = window.localStorage.getItem(userStorageKey);
+    const nextUserId = existingUserId || `anon-${crypto.randomUUID()}`;
+    window.localStorage.setItem(userStorageKey, nextUserId);
+    setUserId(nextUserId);
 
-    setQuota(Math.max(0, initialFreeQuota - parsedRecords.length));
+    void fetch("/api/user/bootstrap", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: nextUserId, records: parsedRecords }),
+    })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("bootstrap failed");
+        return (await response.json()) as { quota: number; records: GenerationRecord[] };
+      })
+      .then((data) => {
+        setQuota(Math.max(0, Number(data.quota) || 0));
+        setRecords(Array.isArray(data.records) ? data.records.slice(0, 20) : parsedRecords);
+      })
+      .catch(() => {
+        if (savedQuota !== null) {
+          const storedQuota = Math.max(0, Number(savedQuota) || 0);
+          const shouldFixOldFreeQuota = storedQuota === initialFreeQuota && parsedRecords.length >= initialFreeQuota;
+          setQuota(shouldFixOldFreeQuota ? 0 : storedQuota);
+          return;
+        }
+        setQuota(Math.max(0, initialFreeQuota - parsedRecords.length));
+      });
   }, []);
 
   useEffect(() => {
@@ -223,7 +244,7 @@ export default function Home() {
     const startResponse = await fetch("/api/generate-wallpaper/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(item),
+      body: JSON.stringify({ ...item, userId }),
     });
 
     if (!startResponse.ok) {
@@ -310,11 +331,11 @@ export default function Home() {
       const response = await fetch("/api/invite/redeem", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: normalized }),
+        body: JSON.stringify({ code: normalized, userId }),
       });
-      const data = (await response.json()) as { ok?: boolean; bonus?: number; message?: string };
+      const data = (await response.json()) as { ok?: boolean; bonus?: number; message?: string; quota?: number };
       if (!response.ok || !data.ok) throw new Error(data.message || "邀请码兑换失败。");
-      setQuota((current) => current + (data.bonus || inviteBonus));
+      setQuota((current) => typeof data.quota === "number" ? Math.max(0, data.quota) : current + (data.bonus || inviteBonus));
       setInviteOpen(false);
       setInviteCode("");
       setInviteMessage(data.message || `已领取 ${data.bonus || inviteBonus} 次生成机会。`);
@@ -479,6 +500,7 @@ export default function Home() {
     </main>
   );
 }
+
 
 
 

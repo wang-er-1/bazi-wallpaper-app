@@ -1,5 +1,6 @@
 ﻿import { randomUUID } from "crypto";
 import { generateWallpaperImage, type GenerateRequest } from "@/lib/image-generator";
+import { addGeneratedRecord } from "@/lib/user-store";
 
 export type GenerationJobStatus = "queued" | "running" | "succeeded" | "failed";
 
@@ -39,6 +40,15 @@ async function runJob(id: string, input: GenerateRequest) {
 
   try {
     const result = await generateWallpaperImage(input);
+    if (input.userId && result.imageUrl) {
+      await addGeneratedRecord(input.userId, {
+        id: `${Date.now()}-${input.title || "wallpaper"}`,
+        title: input.title || "今日壁纸",
+        imageUrl: result.imageUrl,
+        createdAt: new Date().toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }),
+        visual: input.visual || "",
+      });
+    }
     jobs.set(id, {
       ...runningJob,
       status: "succeeded",
@@ -75,3 +85,4 @@ export function getGenerationJob(id: string) {
   cleanupJobs();
   return jobs.get(id);
 }
+

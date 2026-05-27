@@ -1,4 +1,4 @@
-﻿/* eslint-disable @next/next/no-img-element */
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -28,6 +28,15 @@ type GenerationRecord = {
   imageUrl: string;
   createdAt: string;
   visual: string;
+};
+
+type ExampleWallpaper = {
+  title: string;
+  elementTag: string;
+  scene: string;
+  imageUrl: string;
+  accent: string;
+  icon: ElementName;
 };
 
 type AnalyzeResult = {
@@ -75,17 +84,12 @@ const birthTimeRanges = Array.from({ length: 24 }, (_, hour) => {
   return { value, label: `${hour}-${nextHour}点` };
 });
 
-const bannerSlides = [
-  { kicker: "今日壁纸", title: "测测你的今日壁纸", copy: "输入生日后，先看八字五行和当下月份，再生成适合今天的壁纸。", tone: "sunrise" },
-  { kicker: "轻开运", title: "让手机先顺眼一点", copy: "清醒、回血、启动、稳住，不保证玄学，但会认真给你做一张好看的图。", tone: "aqua" },
-  { kicker: "AI 生成", title: "不是图库随机", copy: "每次会把你的五行状态转成专属提示词，再交给 gpt-image-2 生成高清竖屏。", tone: "night" },
-];
-
-const exampleWallpapers = [
-  { title: "火旺降躁", bazi: "丙火日主 · 今日宜水", style: "雾蓝湖光 / 清透冷感", imageUrl: "/examples/misty-blue-lake.jpg" },
-  { title: "土金补稳", bazi: "甲木偏弱 · 取土金", style: "麦田暖金 / 稳住气场", imageUrl: "/examples/golden-wheat-field.jpg" },
-  { title: "木气生发", bazi: "庚金日主 · 取木水", style: "松林晨光 / 向上生长", imageUrl: "/examples/pine-morning.jpg" },
-  { title: "金水清透", bazi: "癸水日主 · 金水相生", style: "玻璃星河 / 清醒灵感", imageUrl: "/examples/glass-starry-river.jpg" },
+const exampleWallpapers: ExampleWallpaper[] = [
+  { title: "朝阳", elementTag: "木火", scene: "提气启动", imageUrl: "/examples/preview-wood-fire-sun.jpg", accent: "fire", icon: "火" },
+  { title: "湖雾", elementTag: "水", scene: "清透回血", imageUrl: "/examples/preview-water-mist.jpg", accent: "water", icon: "水" },
+  { title: "麦田", elementTag: "土金", scene: "稳住气场", imageUrl: "/examples/preview-earth-metal.jpg", accent: "earth", icon: "土" },
+  { title: "松林", elementTag: "木", scene: "舒展生发", imageUrl: "/examples/preview-wood-forest.jpg", accent: "leaf", icon: "木" },
+  { title: "星河", elementTag: "金水", scene: "清醒灵感", imageUrl: "/examples/preview-metal-water.jpg", accent: "metal", icon: "金" },
 ];
 
 const moodMap: Record<string, { label: string; hook: string; className: string }> = {
@@ -101,6 +105,15 @@ function ModelBadge() {
   return <em className="model-badge"><img className="openai-icon" src="/openai-symbol.svg" alt="" aria-hidden="true" />gpt-image-2</em>;
 }
 
+function createGenerationRecord(item: WallpaperPreview, imageUrl: string): GenerationRecord {
+  return {
+    id: `${Date.now()}-${item.title}`,
+    title: item.title,
+    imageUrl,
+    createdAt: new Date().toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }),
+    visual: item.visual,
+  };
+}
 function styleMeta(item: WallpaperPreview) {
   const parts = item.visual.split("｜").map((part) => part.trim()).filter(Boolean);
   return {
@@ -128,6 +141,7 @@ export default function Home() {
   const [inviteCode, setInviteCode] = useState("");
   const [inviteMessage, setInviteMessage] = useState("");
   const [pendingPreview, setPendingPreview] = useState<WallpaperPreview | null>(null);
+  const [previewExample, setPreviewExample] = useState<ExampleWallpaper | null>(null);
   const [form, setForm] = useState<AnalyzeRequest>({
     calendarType: "阳历",
     birthDate: "1996-08-18",
@@ -144,17 +158,17 @@ export default function Home() {
       try {
         const parsed = JSON.parse(savedRecords) as GenerationRecord[];
         parsedRecords = Array.isArray(parsed) ? parsed.slice(0, 20) : [];
-        setRecords(parsedRecords);
+        window.queueMicrotask(() => setRecords(parsedRecords));
       } catch {
         parsedRecords = [];
-        setRecords([]);
+        window.queueMicrotask(() => setRecords([]));
       }
     }
 
     const existingUserId = window.localStorage.getItem(userStorageKey);
     const nextUserId = existingUserId || `anon-${crypto.randomUUID()}`;
     window.localStorage.setItem(userStorageKey, nextUserId);
-    setUserId(nextUserId);
+    window.queueMicrotask(() => setUserId(nextUserId));
 
     void fetch("/api/user/bootstrap", {
       method: "POST",
@@ -196,6 +210,15 @@ export default function Home() {
     return () => window.clearInterval(timer);
   }, [generating]);
 
+  useEffect(() => {
+    if (screen !== "analyzing") return;
+
+    const timer = window.setInterval(() => {
+      setAnalyzeStep((current) => Math.min(current + 1, analyzeSteps.length - 1));
+    }, 650);
+    return () => window.clearInterval(timer);
+  }, [screen]);
+
   function updateBirthDate(part: "year" | "month" | "day", value: number) {
     setForm((current) => {
       const date = parseBirthDate(current.birthDate);
@@ -208,6 +231,7 @@ export default function Home() {
   }
 
   async function startAnalyze() {
+    setAnalyzeStep(0);
     setScreen("analyzing");
     setReasonOpen(false);
     try {
@@ -295,13 +319,8 @@ export default function Home() {
 
     try {
       const data = await requestGeneratedImage(item);
-      const record: GenerationRecord = {
-        id: `${Date.now()}-${item.title}`,
-        title: item.title,
-        imageUrl: data.imageUrl,
-        createdAt: new Date().toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }),
-        visual: item.visual,
-      };
+      const record = createGenerationRecord(item, data.imageUrl);
+
       setGeneratedImageUrl(data.imageUrl);
       setGenerationNote(data.message || "壁纸已生成，已自动放进你的记录里。");
       setRecords((current) => [record, ...current].slice(0, 20));
@@ -374,6 +393,23 @@ export default function Home() {
     }
   }
 
+  async function downloadExampleWallpaper(item: ExampleWallpaper) {
+    try {
+      const response = await fetch(item.imageUrl);
+      if (!response.ok) throw new Error("download failed");
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${item.title}-示例壁纸.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      window.open(item.imageUrl, "_blank", "noopener,noreferrer");
+    }
+  }
   const previews = analysis?.previews.slice(0, 3) ?? [];
   const selectedTitle = selectedPreview?.title ?? "今日壁纸";
 
@@ -387,25 +423,19 @@ export default function Home() {
           <button onClick={() => setScreen("mine")}>剩 {quota} 次</button>
         </header>
 
-        <section className="banner-carousel" aria-label="今日壁纸介绍">
-          {bannerSlides.map((item) => (
-            <article className={`banner-card ${item.tone}`} key={item.title}>
-              <span>{item.kicker}</span>
-              <h1>{item.title}</h1>
-              <p>{item.copy}</p>
-              <ModelBadge />
-            </article>
-          ))}
-        </section>
-
-        <section className="example-showcase" aria-label="生成示例">
-          <div className="section-title slim"><h2>别人可能会生成什么</h2><span>示例效果</span></div>
-          <div className="example-wallpapers">
-            {exampleWallpapers.map((item) => <article className="example-work" key={item.title}><img src={item.imageUrl} alt={`${item.title}示例壁纸`} /><div><b>{item.title}</b><span>{item.bazi}</span><small>{item.style}</small></div></article>)}
+        <section className="hero-reference-card" aria-label="今日壁纸主视觉">
+          <img src="/examples/hero-mountain-dawn.jpg" alt="晨光山水今日壁纸主视觉" />
+          <div className="hero-orbit" aria-hidden="true"><span /><i /></div>
+          <div className="hero-reference-copy">
+            <h1>生成你的<br />今日壁纸</h1>
+            <p>输入生日，匹配今日色彩与意象</p>
+            <em />
+            <ModelBadge />
           </div>
         </section>
+
         <section className="home-form-card">
-          <div className="form-title"><span>填一下生日</span><b>生成前先分析，不会直接扣次数</b></div>
+          <div className="form-title"><span>出生信息</span><b>匹配今日色彩与意象</b></div>
           <div className="quick-form-grid">
             <label>历法<select value={form.calendarType} onChange={(event) => setForm((current) => ({ ...current, calendarType: event.target.value }))}><option>阳历</option><option>农历</option></select></label>
             <label className="birthday-field">生日<div className="birthday-selects"><select value={birthDateParts.year} onChange={(event) => updateBirthDate("year", Number(event.target.value))}>{yearOptions.map((year) => <option value={year} key={year}>{year}年</option>)}</select><select value={birthDateParts.month} onChange={(event) => updateBirthDate("month", Number(event.target.value))}>{monthOptions.map((month) => <option value={month} key={month}>{month}月</option>)}</select><select value={birthDateParts.day} onChange={(event) => updateBirthDate("day", Number(event.target.value))}>{dayOptions.map((day) => <option value={day} key={day}>{day}日</option>)}</select></div></label>
@@ -413,6 +443,19 @@ export default function Home() {
             <label>性别<select value={form.gender} onChange={(event) => setForm((current) => ({ ...current, gender: event.target.value }))}><option>女</option><option>男</option><option>不填写</option></select></label>
           </div>
           <button className="primary wide" onClick={startAnalyze}>生成壁纸</button>
+        </section>
+
+        <section className="example-showcase" aria-label="生成示例">
+          <div className="section-title slim inspiration-title"><h2>大家的生成样式</h2><span>可横滑查看</span></div>
+          <p className="example-note">模拟不同用户的生日八字结合当月气势生成。</p>
+          <div className="example-wallpapers">
+            {exampleWallpapers.map((item) => (
+              <button className={`example-work ${item.accent}`} type="button" key={item.title} onClick={() => setPreviewExample(item)}>
+                <img src={item.imageUrl} alt={`${item.title}示例壁纸`} />
+                <div className="example-chip"><i>{item.icon}</i><b>{item.elementTag} · {item.title}</b></div>
+              </button>
+            ))}
+          </div>
         </section>
       </section>
 
@@ -492,6 +535,22 @@ export default function Home() {
         </section>
       </div> : null}
 
+
+      {previewExample ? <div className="invite-mask preview-mask" role="dialog" aria-modal="true">
+        <section className="example-preview-dialog">
+          <button className="close-btn" onClick={() => setPreviewExample(null)}>×</button>
+          <img src={previewExample.imageUrl} alt={`${previewExample.title}示例壁纸大图`} />
+          <div className="example-preview-copy">
+            <span>{previewExample.elementTag} · {previewExample.title}</span>
+            <h2>{previewExample.title}</h2>
+            <p>{previewExample.scene}</p>
+          </div>
+          <div className="preview-actions">
+            <button className="primary" onClick={() => void downloadExampleWallpaper(previewExample)}>下载示例</button>
+            <button onClick={() => window.open(previewExample.imageUrl, "_blank", "noopener,noreferrer")}>打开原图</button>
+          </div>
+        </section>
+      </div> : null}
       <nav className="bottom-nav">
         <button className={screen === "home" ? "active" : ""} onClick={() => setScreen("home")}><span className="nav-icon home-icon" />首页</button>
         <button className={screen === "recommend" || screen === "result" ? "active" : ""} onClick={() => analysis ? setScreen("recommend") : setScreen("home")}><span className="nav-icon birth-icon" />生成</button>
@@ -500,13 +559,6 @@ export default function Home() {
     </main>
   );
 }
-
-
-
-
-
-
-
 
 
 

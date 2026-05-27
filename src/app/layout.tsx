@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "五行壁纸生成",
-  description: "根据生辰与当前时间生成 AI 五行壁纸",
+  description: "根据生日、八字和五行生成 AI 手机壁纸",
 };
 
 export default function RootLayout({
@@ -17,3 +17,4 @@ export default function RootLayout({
     </html>
   );
 }
+

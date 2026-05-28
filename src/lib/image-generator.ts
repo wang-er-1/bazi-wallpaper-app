@@ -1,4 +1,8 @@
-﻿export type GenerateRequest = {
+import { randomUUID } from "crypto";
+import { mkdir, writeFile } from "fs/promises";
+import path from "path";
+
+export type GenerateRequest = {
   title?: string;
   prompt?: string;
   visual?: string;
@@ -13,6 +17,14 @@ type ImageApiResponse = {
 };
 
 const defaultTitle = "五行壁纸";
+const generatedDir = path.join(process.cwd(), "public", "generated");
+
+async function saveBase64Image(base64: string) {
+  const fileName = `${Date.now()}-${randomUUID()}.png`;
+  await mkdir(generatedDir, { recursive: true });
+  await writeFile(path.join(generatedDir, fileName), Buffer.from(base64, "base64"));
+  return `/generated/${fileName}`;
+}
 
 export function buildImagePrompt(input: GenerateRequest) {
   return [
@@ -74,7 +86,7 @@ export async function generateWallpaperImage(input: GenerateRequest) {
 
     const data = (await response.json()) as ImageApiResponse;
     const first = data.data?.[0] ?? data;
-    const imageUrl = first.url || (first.b64_json ? `data:image/png;base64,${first.b64_json}` : "");
+    const imageUrl = first.url || (first.b64_json ? await saveBase64Image(first.b64_json) : "");
 
     if (!imageUrl) throw new Error(`图片接口没有返回图片：${JSON.stringify(data)}`);
 

@@ -424,7 +424,7 @@ export default function Home() {
         </header>
 
         <section className="hero-reference-card" aria-label="今日壁纸主视觉">
-          <img src="/examples/hero-mountain-dawn.jpg" alt="晨光山水今日壁纸主视觉" />
+          <img src="/examples/hero-mountain-dawn.jpg" alt="晨光山水今日壁纸主视觉" loading="eager" decoding="async" />
           <div className="hero-orbit" aria-hidden="true"><span /><i /></div>
           <div className="hero-reference-copy">
             <h1>生成你的<br />今日壁纸</h1>
@@ -451,7 +451,7 @@ export default function Home() {
           <div className="example-wallpapers">
             {exampleWallpapers.map((item) => (
               <button className={`example-work ${item.accent}`} type="button" key={item.title} onClick={() => setPreviewExample(item)}>
-                <img src={item.imageUrl} alt={`${item.title}示例壁纸`} />
+                <img src={item.imageUrl} alt={`${item.title}示例壁纸`} loading="lazy" decoding="async" />
                 <div className="example-chip"><i>{item.icon}</i><b>{item.elementTag} · {item.title}</b></div>
               </button>
             ))}
@@ -502,7 +502,7 @@ export default function Home() {
           <p>{generating ? "别关页面，正在把你的今日状态画出来。" : "生成成功后会自动保存到我的记录。"}</p>
         </header>
         <section className="single-wallpaper-wrap">
-          {generatedImageUrl ? <img className="generated-wallpaper" src={generatedImageUrl} alt={`${selectedTitle}壁纸`} /> : <div className="result-placeholder"><div className="spinner" /><span>{selectedTitle}</span></div>}
+          {generatedImageUrl ? <img className="generated-wallpaper" src={generatedImageUrl} alt={`${selectedTitle}壁纸`} loading="eager" decoding="async" /> : <div className="result-placeholder"><div className="spinner" /><span>{selectedTitle}</span></div>}
         </section>
         {generationNote ? <p className="generation-note">{generationNote}</p> : null}
         {selectedPreview ? <section className="live-reasoning"><b>{generating ? "正在这样画" : "生成依据"}</b><span>{selectedPreview.basis}</span><small>{selectedPreview.visual}</small></section> : null}
@@ -519,7 +519,7 @@ export default function Home() {
         <button className="group-card" onClick={() => window.open(qqGroupUrl, "_blank", "noopener,noreferrer")}>加入交流群<span>反馈效果图、领内测码、一起调风格</span></button>
         <section className="record-section">
           <div className="section-title slim"><h2>生成记录</h2><span>{records.length ? "点开可查看" : "生成后自动保存"}</span></div>
-          {records.length ? <div className="record-grid">{records.map((item) => <button className="record-card" key={item.id} onClick={() => { setGeneratedImageUrl(item.imageUrl); setSelectedPreview({ title: item.title, visual: item.visual, basis: "", cls: "", prompt: "" }); setGenerationNote("来自生成记录。"); setScreen("result"); }}><img src={item.imageUrl} alt={item.title} /><span>{item.title}</span><small>{item.createdAt}</small></button>)}</div> : <div className="empty-record">还没有记录。先生成一张今日壁纸试试。</div>}
+          {records.length ? <div className="record-grid">{records.map((item) => <button className="record-card" key={item.id} onClick={() => { setGeneratedImageUrl(item.imageUrl); setSelectedPreview({ title: item.title, visual: item.visual, basis: "", cls: "", prompt: "" }); setGenerationNote("来自生成记录。"); setScreen("result"); }}><img src={item.imageUrl} alt={item.title} loading="lazy" decoding="async" /><span>{item.title}</span><small>{item.createdAt}</small></button>)}</div> : <div className="empty-record">还没有记录。先生成一张今日壁纸试试。</div>}
         </section>
       </section>
 
@@ -539,7 +539,7 @@ export default function Home() {
       {previewExample ? <div className="invite-mask preview-mask" role="dialog" aria-modal="true">
         <section className="example-preview-dialog">
           <button className="close-btn" onClick={() => setPreviewExample(null)}>×</button>
-          <img src={previewExample.imageUrl} alt={`${previewExample.title}示例壁纸大图`} />
+          <img src={previewExample.imageUrl} alt={`${previewExample.title}示例壁纸大图`} loading="lazy" decoding="async" />
           <div className="example-preview-copy">
             <span>{previewExample.elementTag} · {previewExample.title}</span>
             <h2>{previewExample.title}</h2>

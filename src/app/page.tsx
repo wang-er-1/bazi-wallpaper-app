@@ -105,6 +105,10 @@ function ModelBadge() {
   return <em className="model-badge"><img className="openai-icon" src="/openai-symbol.svg" alt="" aria-hidden="true" />gpt-image-2</em>;
 }
 
+function createAnonymousUserId() {
+  const randomPart = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `anon-${randomPart}`;
+}
 function createGenerationRecord(item: WallpaperPreview, imageUrl: string): GenerationRecord {
   return {
     id: `${Date.now()}-${item.title}`,
@@ -166,7 +170,7 @@ export default function Home() {
     }
 
     const existingUserId = window.localStorage.getItem(userStorageKey);
-    const nextUserId = existingUserId || `anon-${crypto.randomUUID()}`;
+    const nextUserId = existingUserId || createAnonymousUserId();
     window.localStorage.setItem(userStorageKey, nextUserId);
     window.queueMicrotask(() => setUserId(nextUserId));
 

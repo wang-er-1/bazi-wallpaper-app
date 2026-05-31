@@ -1,4 +1,4 @@
-﻿import { mkdir, readFile, writeFile } from "fs/promises";
+import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 
 export type UserRecord = {
@@ -22,7 +22,8 @@ type UserStore = {
   users: AnonymousUser[];
 };
 
-const initialFreeQuota = 1;
+const initialFreeQuota = 10;
+const generationCost = 10;
 const dataDir = path.join(process.cwd(), "data");
 const storePath = path.join(dataDir, "users.json");
 
@@ -36,6 +37,14 @@ async function readStore(): Promise<UserStore> {
   }
 }
 
+function migrateLegacyQuota(user: AnonymousUser) {
+  if (user.quota > 0 && user.quota < generationCost) {
+    user.quota *= generationCost;
+    user.updatedAt = new Date().toISOString();
+    return true;
+  }
+  return false;
+}
 async function writeStore(store: UserStore) {
   await mkdir(dataDir, { recursive: true });
   await writeFile(storePath, JSON.stringify(store, null, 2), "utf8");
@@ -60,13 +69,16 @@ export async function ensureAnonymousUser(id: string, localRecords?: UserRecord[
   const store = await readStore();
   const existing = store.users.find((user) => user.id === userId);
 
-  if (existing) return existing;
+  if (existing) {
+    if (migrateLegacyQuota(existing)) await writeStore(store);
+    return existing;
+  }
 
   const records = normalizeRecords(localRecords);
   const now = new Date().toISOString();
   const user: AnonymousUser = {
     id: userId,
-    quota: Math.max(0, initialFreeQuota - records.length),
+    quota: Math.max(0, initialFreeQuota - records.length * generationCost),
     records,
     redeemedCodes: [],
     createdAt: now,
@@ -80,12 +92,14 @@ export async function ensureAnonymousUser(id: string, localRecords?: UserRecord[
 
 export async function getAnonymousUser(id: string) {
   const store = await readStore();
-  return store.users.find((user) => user.id === id.trim()) ?? null;
+  const user = store.users.find((item) => item.id === id.trim()) ?? null;
+  if (user && migrateLegacyQuota(user)) await writeStore(store);
+  return user;
 }
 
 export async function canUserGenerate(id: string) {
   const user = await getAnonymousUser(id);
-  return Boolean(user && user.quota > 0);
+  return Boolean(user && user.quota >= generationCost);
 }
 
 export async function addUserQuota(id: string, bonus: number, code?: string) {
@@ -109,7 +123,7 @@ export async function addGeneratedRecord(id: string, record: UserRecord) {
   const user = store.users.find((item) => item.id === id.trim());
   if (!user) return null;
 
-  user.quota = Math.max(0, user.quota - 1);
+  user.quota = Math.max(0, user.quota - generationCost);
   user.records = [record, ...user.records.filter((item) => item.id !== record.id)].slice(0, 20);
   user.updatedAt = new Date().toISOString();
   await writeStore(store);

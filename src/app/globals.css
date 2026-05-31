@@ -2748,3 +2748,141 @@ select {
     grid-auto-columns: minmax(145px, 45%);
   }
 }
+
+/* v10: direction selection and credits */
+.direction-card-list {
+  display: grid;
+  gap: 14px;
+  padding-bottom: 8px;
+}
+
+.direction-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1fr);
+  min-height: 196px;
+  overflow: hidden;
+  border: 1px solid rgba(43, 86, 84, 0.12);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 16px 38px rgba(55, 45, 31, 0.09);
+}
+
+.direction-card.selected {
+  border-color: #178d8f;
+  box-shadow: 0 18px 44px rgba(23, 141, 143, 0.16);
+}
+
+.direction-image {
+  position: relative;
+  min-height: 196px;
+  overflow: hidden;
+  background: #eef2ed;
+}
+
+.direction-image img {
+  width: 100%;
+  height: 100%;
+  min-height: 196px;
+  display: block;
+  object-fit: cover;
+}
+
+.direction-copy {
+  position: relative;
+  display: grid;
+  align-content: center;
+  gap: 11px;
+  padding: 18px 18px 18px 20px;
+  background:
+    radial-gradient(circle at 86% 12%, rgba(23, 141, 143, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 252, 245, 0.9));
+}
+
+.direction-copy h2 {
+  max-width: 150px;
+  color: #151a18;
+  font-family: Georgia, "Times New Roman", "Microsoft YaHei", serif;
+  font-size: 29px;
+  line-height: 1.08;
+}
+
+.direction-copy > span {
+  width: max-content;
+  max-width: 100%;
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: #e5f2ee;
+  color: #178d8f;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.direction-copy p {
+  margin: 0;
+  color: #59534b;
+  font-size: 13px;
+  line-height: 1.55;
+  font-weight: 760;
+}
+
+.direction-generate {
+  width: max-content;
+  min-width: 92px;
+  min-height: 44px;
+  border-radius: 999px;
+  padding: 0 22px;
+  background: linear-gradient(135deg, #178d8f, #0b7477);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 950;
+  box-shadow: 0 12px 24px rgba(23, 141, 143, 0.2);
+}
+
+.direction-card:not(.selected) .direction-generate {
+  border: 1px solid rgba(23, 141, 143, 0.28);
+  background: rgba(255, 255, 255, 0.74);
+  color: #176f72;
+  box-shadow: none;
+}
+
+.direction-check {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(107, 124, 130, 0.5);
+  border-radius: 999px;
+  color: #fff;
+  font-weight: 950;
+}
+
+.direction-card.selected .direction-check {
+  border-color: #178d8f;
+  background: #178d8f;
+}
+
+.mine-card small {
+  color: #8a8176;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+@media (max-width: 380px) {
+  .direction-card {
+    grid-template-columns: 1fr;
+  }
+
+  .direction-image,
+  .direction-image img {
+    min-height: 168px;
+  }
+
+  .direction-copy h2 {
+    max-width: 220px;
+    font-size: 26px;
+  }
+}

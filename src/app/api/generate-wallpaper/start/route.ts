@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createGenerationJob } from "@/lib/generation-jobs";
 import type { GenerateRequest } from "@/lib/image-generator";
 import { canUserGenerate, ensureAnonymousUser } from "@/lib/user-store";
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
       await ensureAnonymousUser(body.userId);
       const canGenerate = await canUserGenerate(body.userId);
       if (!canGenerate) {
-        return NextResponse.json({ message: "你的体验次数已用完，兑换邀请码后可以继续生成。" }, { status: 402 });
+        return NextResponse.json({ message: "灵感值不足，兑换邀请码后可以继续生成。" }, { status: 402 });
       }
     }
 

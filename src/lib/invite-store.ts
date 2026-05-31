@@ -1,4 +1,4 @@
-﻿import { mkdir, readFile, writeFile } from "fs/promises";
+import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { randomBytes } from "crypto";
 
@@ -90,5 +90,5 @@ export async function redeemInviteCode(rawCode: string) {
   target.redeemedAt = [...(target.redeemedAt ?? []), new Date().toISOString()];
   await writeStore(store);
 
-  return { ok: true as const, bonus: target.bonus, message: `兑换成功，已增加 ${target.bonus} 次生成机会。` };
+  return { ok: true as const, bonus: target.bonus, message: `兑换成功，已增加 ${target.bonus} 灵感值。` };
 }

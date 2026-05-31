@@ -51,8 +51,9 @@ type AnalyzeResult = {
   previews: WallpaperPreview[];
 };
 
-const initialFreeQuota = 1;
-const inviteBonus = 5;
+const initialFreeQuota = 10;
+const inviteBonus = 100;
+const generationCost = 10;
 const recordsStorageKey = "bazi-wallpaper-records";
 const quotaStorageKey = "bazi-wallpaper-quota";
 const userStorageKey = "bazi-wallpaper-user-id";
@@ -105,6 +106,10 @@ function ModelBadge() {
   return <em className="model-badge"><img className="openai-icon" src="/openai-symbol.svg" alt="" aria-hidden="true" />gpt-image-2</em>;
 }
 
+function normalizeStoredCredits(value: string | null) {
+  const parsed = Math.max(0, Number(value) || 0);
+  return parsed > 0 && parsed < generationCost ? parsed * generationCost : parsed;
+}
 function createAnonymousUserId() {
   const randomPart = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   return `anon-${randomPart}`;
@@ -117,6 +122,15 @@ function createGenerationRecord(item: WallpaperPreview, imageUrl: string): Gener
     createdAt: new Date().toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }),
     visual: item.visual,
   };
+}
+function getDirectionImage(item: WallpaperPreview) {
+  if (item.imageUrl && !item.imageUrl.includes("/covers/")) return item.imageUrl;
+  const visual = `${item.title} ${item.visual}`;
+  if (/雾蓝|湖|水|清透|降躁/.test(visual)) return "/examples/misty-blue-lake.jpg";
+  if (/松林|木|生发|森林|晨雾/.test(visual)) return "/examples/pine-morning.jpg";
+  if (/麦|金|土|稳|大地/.test(visual)) return "/examples/golden-wheat-field.jpg";
+  if (/星河|夜|玻璃|灵感/.test(visual)) return "/examples/glass-starry-river.jpg";
+  return "/examples/hero-mountain-dawn.jpg";
 }
 function styleMeta(item: WallpaperPreview) {
   const parts = item.visual.split("｜").map((part) => part.trim()).filter(Boolean);
@@ -189,12 +203,12 @@ export default function Home() {
       })
       .catch(() => {
         if (savedQuota !== null) {
-          const storedQuota = Math.max(0, Number(savedQuota) || 0);
-          const shouldFixOldFreeQuota = storedQuota === initialFreeQuota && parsedRecords.length >= initialFreeQuota;
+          const storedQuota = normalizeStoredCredits(savedQuota);
+          const shouldFixOldFreeQuota = storedQuota === initialFreeQuota && parsedRecords.length > 0;
           setQuota(shouldFixOldFreeQuota ? 0 : storedQuota);
           return;
         }
-        setQuota(Math.max(0, initialFreeQuota - parsedRecords.length));
+        setQuota(Math.max(0, initialFreeQuota - parsedRecords.length * generationCost));
       });
   }, []);
 
@@ -259,10 +273,10 @@ export default function Home() {
 
   function requestGenerate(item: WallpaperPreview) {
     if (generating) return;
-    if (quota <= 0) {
+    if (quota < generationCost) {
       setPendingPreview(item);
       setInviteOpen(true);
-      setInviteMessage("输入邀请码后可继续生成。");
+      setInviteMessage("灵感值不足，兑换邀请码后可继续生成。");
       return;
     }
     void generateWallpaper(item);
@@ -311,7 +325,7 @@ export default function Home() {
       if (job.status === "failed") throw new Error(job.error || "图片生成暂时失败，请稍后再试。");
     }
 
-    throw new Error("这次生成等待太久了。你可以先点重试，不会重复扣次数。");
+    throw new Error("这次生成等待太久了。你可以先点重试，不会重复扣灵感值。");
   }
   async function generateWallpaper(item: WallpaperPreview) {
     setSelectedPreview(item);
@@ -328,7 +342,7 @@ export default function Home() {
       setGeneratedImageUrl(data.imageUrl);
       setGenerationNote(data.message || "壁纸已生成，已自动放进你的记录里。");
       setRecords((current) => [record, ...current].slice(0, 20));
-      setQuota((current) => Math.max(0, current - 1));
+      setQuota((current) => Math.max(0, current - generationCost));
     } catch (error) {
       const rawMessage = error instanceof Error ? error.message : "";
       const friendlyMessage = rawMessage === "Load failed" || rawMessage === "Failed to fetch"
@@ -361,7 +375,7 @@ export default function Home() {
       setQuota((current) => typeof data.quota === "number" ? Math.max(0, data.quota) : current + (data.bonus || inviteBonus));
       setInviteOpen(false);
       setInviteCode("");
-      setInviteMessage(data.message || `已领取 ${data.bonus || inviteBonus} 次生成机会。`);
+      setInviteMessage(data.message || `已到账 ${data.bonus || inviteBonus} 灵感值。`);
       if (pendingPreview) {
         const preview = pendingPreview;
         setPendingPreview(null);
@@ -424,7 +438,7 @@ export default function Home() {
       <section className={`screen ${screen === "home" ? "active" : ""}`}>
         <header className="v4-topbar">
           <span>今日壁纸</span>
-          <button onClick={() => setScreen("mine")}>剩 {quota} 次</button>
+          <button onClick={() => setScreen("mine")}>{quota} 灵感值</button>
         </header>
 
         <section className="hero-reference-card" aria-label="今日壁纸主视觉">
@@ -470,25 +484,29 @@ export default function Home() {
       <section className={`screen ${screen === "recommend" ? "active" : ""}`}>
         <header className="page-head minimal-head">
           <p className="eyebrow">分析完成</p>
-          <h1>选一个今天的状态</h1>
-          <p>{analysis?.themeCopy}</p>
+          <h1>选择今天的气质</h1>
+          <p>根据你的日期状态，挑一个画面方向。生成将消耗 {generationCost} 灵感值。</p>
         </header>
 
-        <section className="style-card-list">
-          {previews.map((item) => {
+        <section className="direction-card-list">
+          {previews.map((item, index) => {
             const meta = styleMeta(item);
             return (
-              <article className={`style-card ${meta.className}`} key={item.title}>
-                <div className="style-card-head"><span>{meta.label}</span><ModelBadge /></div>
-                <h2>{item.title}</h2>
-                <p>{meta.hook}</p>
-                <div className="style-tags"><span>{meta.label}</span><span>{meta.visual}</span></div>
-                <button className="primary wide" onClick={() => requestGenerate(item)}>立即生成</button>
+              <article className={`direction-card ${index === 0 ? "selected" : ""}`} key={item.title}>
+                <div className="direction-image">
+                  <img src={getDirectionImage(item)} alt={`${item.title}方向预览`} loading={index === 0 ? "eager" : "lazy"} decoding="async" />
+                </div>
+                <div className="direction-copy">
+                  <div className="direction-check" aria-hidden="true">{index === 0 ? "✓" : ""}</div>
+                  <h2>{item.title}</h2>
+                  <span>{meta.label}</span>
+                  <p>适合：{meta.visual}</p>
+                  <button className="direction-generate" onClick={() => requestGenerate(item)}>生成</button>
+                </div>
               </article>
             );
           })}
         </section>
-
         <button className="why-toggle" onClick={() => setReasonOpen((open) => !open)}>{reasonOpen ? "收起分析" : "看看为什么"}</button>
         {reasonOpen && analysis ? <section className="reason-panel">
           <h3>{analysis.themeTitle}</h3>
@@ -515,9 +533,9 @@ export default function Home() {
       </section>
 
       <section className={`screen ${screen === "mine" ? "active" : ""}`}>
-        <header className="page-head minimal-head"><p className="eyebrow">我的</p><h1>我的壁纸</h1><p>第一版先不开放付费。默认 1 次体验，邀请码可再领 5 次。</p></header>
+        <header className="page-head minimal-head"><p className="eyebrow">我的</p><h1>我的壁纸</h1><p>灵感值用于生成壁纸。第一版先用邀请码充值，后续再接支付自动到账。</p></header>
         <section className="mine-card">
-          <div><span>剩余生成次数</span><b>{quota}</b></div>
+          <div><span>灵感值余额</span><b>{quota}</b><small>生成 1 张消耗 {generationCost}</small></div>
           <button onClick={() => setInviteOpen(true)}>兑换邀请码</button>
         </section>
         <button className="group-card" onClick={() => window.open(qqGroupUrl, "_blank", "noopener,noreferrer")}>加入交流群<span>反馈效果图、领内测码、一起调风格</span></button>
@@ -531,8 +549,8 @@ export default function Home() {
         <section className="invite-dialog">
           <button className="close-btn" onClick={() => { setInviteOpen(false); setPendingPreview(null); }}>×</button>
           <span>内测邀请码</span>
-          <h2>领取生成次数</h2>
-          <p>输入邀请码后增加 {inviteBonus} 次生成机会。没有邀请码也可以先看分析结果。</p>
+          <h2>兑换灵感值</h2>
+          <p>输入邀请码后增加 {inviteBonus} 灵感值。生成 1 张壁纸消耗 {generationCost} 灵感值。</p>
           <input value={inviteCode} onChange={(event) => setInviteCode(event.target.value)} placeholder="例如 BZ001-XXXXXX" />
           {inviteMessage ? <small>{inviteMessage}</small> : null}
           <button className="primary wide" onClick={redeemInvite}>立即兑换</button>

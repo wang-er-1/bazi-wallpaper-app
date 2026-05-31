@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createInviteCodes } from "@/lib/invite-store";
 
 function getBearerSecret(request: Request) {
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   };
 
   const count = Math.min(Math.max(Number(body.count) || 100, 1), 500);
-  const bonus = Math.min(Math.max(Number(body.bonus) || 5, 1), 100);
+  const bonus = Math.min(Math.max(Number(body.bonus) || 100, 1), 1000);
   const maxRedemptions = Math.min(Math.max(Number(body.maxRedemptions) || 1, 1), 100);
   const expiresDays = body.expiresDays ? Math.min(Math.max(Number(body.expiresDays), 1), 365) : 60;
 

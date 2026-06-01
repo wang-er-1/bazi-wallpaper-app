@@ -123,15 +123,8 @@ function createGenerationRecord(item: WallpaperPreview, imageUrl: string): Gener
     visual: item.visual,
   };
 }
-function getDirectionImage(item: WallpaperPreview) {
-  if (item.imageUrl && !item.imageUrl.includes("/covers/")) return item.imageUrl;
-  const visual = `${item.title} ${item.visual}`;
-  if (/雾蓝|湖|水|清透|降躁/.test(visual)) return "/examples/misty-blue-lake.jpg";
-  if (/松林|木|生发|森林|晨雾/.test(visual)) return "/examples/pine-morning.jpg";
-  if (/麦|金|土|稳|大地/.test(visual)) return "/examples/golden-wheat-field.jpg";
-  if (/星河|夜|玻璃|灵感/.test(visual)) return "/examples/glass-starry-river.jpg";
-  return "/examples/hero-mountain-dawn.jpg";
-}
+
+
 function styleMeta(item: WallpaperPreview) {
   const parts = item.visual.split("｜").map((part) => part.trim()).filter(Boolean);
   return {
@@ -492,9 +485,11 @@ export default function Home() {
           {previews.map((item, index) => {
             const meta = styleMeta(item);
             return (
-              <article className={`direction-card ${index === 0 ? "selected" : ""}`} key={item.title}>
-                <div className="direction-image">
-                  <img src={getDirectionImage(item)} alt={`${item.title}方向预览`} loading={index === 0 ? "eager" : "lazy"} decoding="async" />
+              <article className={`direction-card ${meta.className} ${index === 0 ? "selected" : ""}`} key={item.title}>
+                <div className="direction-atmosphere" aria-hidden="true">
+                  <span className="atmosphere-orb" />
+                  <span className="atmosphere-line" />
+                  <span className="atmosphere-mark">{meta.label.slice(0, 2)}</span>
                 </div>
                 <div className="direction-copy">
                   <div className="direction-check" aria-hidden="true">{index === 0 ? "✓" : ""}</div>

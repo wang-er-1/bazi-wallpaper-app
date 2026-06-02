@@ -264,15 +264,17 @@ export default function Home() {
     }
   }
 
-  function requestGenerate(item: WallpaperPreview) {
-    if (generating) return;
+  function requestGenerate(item?: WallpaperPreview | null) {
+    const target = item ?? selectedPreview;
+    if (!target || generating) return;
+    setSelectedPreview(target);
     if (quota < generationCost) {
-      setPendingPreview(item);
+      setPendingPreview(target);
       setInviteOpen(true);
       setInviteMessage("灵感值不足，兑换邀请码后可继续生成。");
       return;
     }
-    void generateWallpaper(item);
+    void generateWallpaper(target);
   }
 
   async function requestGeneratedImage(item: WallpaperPreview): Promise<{ imageUrl: string; message?: string; mode?: string }> {
@@ -482,25 +484,36 @@ export default function Home() {
         </header>
 
         <section className="direction-card-list">
-          {previews.map((item, index) => {
+          {previews.map((item) => {
             const meta = styleMeta(item);
             return (
-              <article className={`direction-card ${meta.className} ${index === 0 ? "selected" : ""}`} key={item.title}>
+              <article
+                className={`direction-card ${meta.className} ${selectedPreview?.title === item.title ? "selected" : ""}`}
+                key={item.title}
+                onClick={() => setSelectedPreview(item)}
+              >
                 <div className="direction-atmosphere" aria-hidden="true">
                   <span className="atmosphere-orb" />
                   <span className="atmosphere-line" />
                   <span className="atmosphere-mark">{meta.label.slice(0, 2)}</span>
                 </div>
                 <div className="direction-copy">
-                  <div className="direction-check" aria-hidden="true">{index === 0 ? "✓" : ""}</div>
+                  <div className="direction-check" aria-hidden="true">{selectedPreview?.title === item.title ? "✓" : ""}</div>
                   <h2>{item.title}</h2>
                   <span>{meta.label}</span>
                   <p>适合：{meta.visual}</p>
-                  <button className="direction-generate" onClick={() => requestGenerate(item)}>生成</button>
+                  <button className="direction-generate" onClick={(event) => { event.stopPropagation(); requestGenerate(item); }}>选择</button>
                 </div>
               </article>
             );
           })}
+        </section>
+                <section className="selected-direction-action">
+          <div>
+            <span>当前选择</span>
+            <b>{selectedPreview?.title || "先选一个风格"}</b>
+          </div>
+          <button onClick={() => requestGenerate(selectedPreview)}>生成当前风格</button>
         </section>
         <button className="why-toggle" onClick={() => setReasonOpen((open) => !open)}>{reasonOpen ? "收起分析" : "看看为什么"}</button>
         {reasonOpen && analysis ? <section className="reason-panel">
@@ -522,7 +535,7 @@ export default function Home() {
           {generatedImageUrl ? <img className="generated-wallpaper" src={generatedImageUrl} alt={`${selectedTitle}壁纸`} loading="eager" decoding="async" /> : <div className="result-placeholder"><div className="spinner" /><span>{selectedTitle}</span></div>}
         </section>
         {generationNote ? <p className="generation-note">{generationNote}</p> : null}
-        {selectedPreview ? <section className="live-reasoning"><b>{generating ? "正在这样画" : "生成依据"}</b><span>{selectedPreview.basis}</span><small>{selectedPreview.visual}</small></section> : null}
+        {selectedPreview ? <section className="live-reasoning"><b>{generating ? "正在这样画" : "生成依据"}</b><span>{selectedPreview.basis || "这张来自你的生成记录。"}</span></section> : null}
         {generating ? <div className="generation-steps" aria-label="生成进度">{generationSteps.map((step, index) => <span className={index <= generationStep ? "active" : ""} key={step}><i />{step}</span>)}</div> : null}
         {generatedImageUrl ? <div className="result-actions v4-actions"><button className="primary" onClick={downloadWallpaper}>下载壁纸</button><button onClick={openOriginalImage}>打开原图</button><button onClick={() => setScreen("recommend")}>换一张</button><button onClick={() => setScreen("home")}>改信息</button></div> : selectedPreview && !generating ? <div className="result-actions v4-actions"><button className="primary" onClick={() => requestGenerate(selectedPreview)}>重试生成</button><button onClick={() => setScreen("recommend")}>换一张</button><button onClick={() => setScreen("home")}>改信息</button></div> : null}
       </section>

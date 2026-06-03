@@ -292,14 +292,14 @@ export default function Home() {
     const started = (await startResponse.json()) as { jobId?: string };
     if (!started.jobId) throw new Error("生成任务没有返回任务编号，请稍后再试。");
 
-    setGenerationNote("任务已提交，服务器正在帮你画图。你可以停在这里等一下，不要反复点击。");
+    setGenerationNote("已提交生成任务，通常需要 30 秒左右。请停在这个页面耐心等一下，不要反复点击。");
 
     for (let attempt = 0; attempt < 110; attempt += 1) {
       await new Promise((resolve) => window.setTimeout(resolve, attempt < 6 ? 800 : 1200));
 
-      if (attempt === 3) setGenerationNote("正在把八字、五行和今日气势整理成画面关键词。");
-      if (attempt === 8) setGenerationNote("gpt-image-2 已开始生成高清竖屏图，马上看成品。");
-      if (attempt === 18) setGenerationNote("图片还在路上，手机网络慢时会多等几秒，我还在盯着结果。");
+      if (attempt === 3) setGenerationNote("正在整理画面关键词，预计还需要二十多秒。");
+      if (attempt === 8) setGenerationNote("图片正在生成中，通常 30 秒左右完成。");
+      if (attempt === 18) setGenerationNote("这次稍微慢一点，请再等一会儿。生成完成后会自动显示。");
 
       const statusResponse = await fetch(`/api/generate-wallpaper/status?id=${encodeURIComponent(started.jobId)}`, {
         cache: "no-store",
@@ -320,7 +320,7 @@ export default function Home() {
       if (job.status === "failed") throw new Error(job.error || "图片生成暂时失败，请稍后再试。");
     }
 
-    throw new Error("这次生成等待太久了。你可以先点重试，不会重复扣灵感值。");
+    throw new Error("生成暂时没有完成，请稍后再试。");
   }
   async function generateWallpaper(item: WallpaperPreview) {
     setSelectedPreview(item);
@@ -340,11 +340,9 @@ export default function Home() {
       setQuota((current) => Math.max(0, current - generationCost));
     } catch (error) {
       const rawMessage = error instanceof Error ? error.message : "";
-      const friendlyMessage = rawMessage === "Load failed" || rawMessage === "Failed to fetch"
-        ? "这次网络请求没有连上服务器，可能是手机网络或浏览器临时中断。你可以点重试，或换微信外部浏览器打开。"
-        : rawMessage.toLowerCase().includes("fetch failed")
-          ? "服务器这次没有连上图片生成服务，可能是中转接口网络波动。你可以先点重试；如果连续失败，我需要看服务器日志。"
-          : rawMessage || "图片生成暂时失败，请稍后再试。";
+      const friendlyMessage = rawMessage.includes("灵感值不足")
+        ? rawMessage
+        : "这次生成暂时没有完成，请稍后再试。";
       setGenerationNote(friendlyMessage);
       setGeneratedImageUrl("");
     } finally {
@@ -532,12 +530,12 @@ export default function Home() {
           <p>{generating ? "别关页面，正在把你的今日状态画出来。" : "生成成功后会自动保存到我的记录。"}</p>
         </header>
         <section className="single-wallpaper-wrap">
-          {generatedImageUrl ? <img className="generated-wallpaper" src={generatedImageUrl} alt={`${selectedTitle}壁纸`} loading="eager" decoding="async" /> : <div className="result-placeholder"><div className="spinner" /><span>{selectedTitle}</span></div>}
+          {generatedImageUrl ? <img className="generated-wallpaper" src={generatedImageUrl} alt={`${selectedTitle}壁纸`} loading="eager" decoding="async" /> : generating ? <div className="result-placeholder"><div className="spinner" /><span>{selectedTitle}</span><small>预计 30 秒左右</small></div> : <div className="result-placeholder idle"><span>{selectedTitle}</span><small>还没有生成成功</small></div>}
         </section>
         {generationNote ? <p className="generation-note">{generationNote}</p> : null}
         {selectedPreview ? <section className="live-reasoning"><b>{generating ? "正在这样画" : "生成依据"}</b><span>{selectedPreview.basis || "这张来自你的生成记录。"}</span></section> : null}
         {generating ? <div className="generation-steps" aria-label="生成进度">{generationSteps.map((step, index) => <span className={index <= generationStep ? "active" : ""} key={step}><i />{step}</span>)}</div> : null}
-        {generatedImageUrl ? <div className="result-actions v4-actions"><button className="primary" onClick={downloadWallpaper}>下载壁纸</button><button onClick={openOriginalImage}>打开原图</button><button onClick={() => setScreen("recommend")}>换一张</button><button onClick={() => setScreen("home")}>改信息</button></div> : selectedPreview && !generating ? <div className="result-actions v4-actions"><button className="primary" onClick={() => requestGenerate(selectedPreview)}>重试生成</button><button onClick={() => setScreen("recommend")}>换一张</button><button onClick={() => setScreen("home")}>改信息</button></div> : null}
+        {generatedImageUrl ? <div className="result-actions v4-actions"><button className="primary" onClick={downloadWallpaper}>下载壁纸</button><button onClick={openOriginalImage}>打开原图</button><button onClick={() => setScreen("recommend")}>换个风格</button><button onClick={() => setScreen("home")}>改信息</button></div> : selectedPreview && !generating ? <div className="result-actions v4-actions"><button className="primary" onClick={() => requestGenerate(selectedPreview)}>重试生成</button><button onClick={() => setScreen("recommend")}>换个风格</button><button onClick={() => setScreen("home")}>改信息</button></div> : null}
       </section>
 
       <section className={`screen ${screen === "mine" ? "active" : ""}`}>

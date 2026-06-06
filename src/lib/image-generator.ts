@@ -17,6 +17,7 @@ type ImageApiResponse = {
 };
 
 const defaultTitle = "五行壁纸";
+const defaultImageSize = "1024x1792";
 const generatedDir = path.join(process.cwd(), "public", "generated");
 
 async function saveBase64Image(base64: string) {
@@ -27,18 +28,25 @@ async function saveBase64Image(base64: string) {
 }
 
 export function buildImagePrompt(input: GenerateRequest) {
+  const theme = input.prompt || "calm elegant oriental mobile wallpaper";
+  const visualDirection = input.visual ? `Recommended visual direction: ${input.visual}.` : "";
+
   return [
-    input.prompt || "vertical phone wallpaper, calm elegant composition",
-    input.visual ? `visual direction: ${input.visual}` : "",
-    "single 9:16 vertical phone wallpaper",
-    "no text, no watermark, no UI mockup",
-    "ultra high definition, sharp focus, rich but clean details, polished premium mobile wallpaper aesthetic",
-  ].filter(Boolean).join(", ");
+    "Create one vertical mobile phone wallpaper for a lock screen.",
+    "Composition: strict portrait 9:16 ratio, full-screen wallpaper, no border, no poster layout.",
+    "Keep the upper 25 percent clean and quiet for phone clock and widgets.",
+    "Place the main visual interest in the lower two-thirds with calm negative space.",
+    "Style: premium mobile wallpaper design, refined oriental aesthetic, soft natural light, atmospheric depth, delicate texture, harmonious color palette.",
+    `Theme: ${theme}.`,
+    visualDirection,
+    "Avoid literal astrology charts, symbols, UI panels, screenshots, typography, decorative text, logos, watermarks, people, faces, hands, and clutter.",
+    "The image should feel usable as a real phone wallpaper: elegant, calm, polished, not busy, not cartoonish, not like a marketing poster.",
+  ].filter(Boolean).join(" ");
 }
 
 export function normalizeImageSize(size: string) {
   const normalized = size.replace(/[×＊*]/g, "x").replace(/\s+/g, "").toLowerCase();
-  return /^\d+x\d+$/.test(normalized) ? normalized : "1080x1920";
+  return /^\d+x\d+$/.test(normalized) ? normalized : defaultImageSize;
 }
 
 export function mockImage(title: string) {
@@ -51,7 +59,7 @@ export async function generateWallpaperImage(input: GenerateRequest) {
   const baseUrl = process.env.IMAGE_API_BASE_URL;
   const apiKey = process.env.IMAGE_API_KEY;
   const model = process.env.IMAGE_MODEL || "gpt-image-2";
-  const size = normalizeImageSize(process.env.IMAGE_SIZE || "1080x1920");
+  const size = normalizeImageSize(process.env.IMAGE_SIZE || defaultImageSize);
   const prompt = buildImagePrompt(input);
 
   if (!baseUrl || !apiKey || apiKey.includes("填你的")) {
@@ -100,5 +108,3 @@ export async function generateWallpaperImage(input: GenerateRequest) {
     clearTimeout(timeout);
   }
 }
-
-
